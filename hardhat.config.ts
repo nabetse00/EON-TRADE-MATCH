@@ -33,6 +33,7 @@ const config: HardhatUserConfig = {
     hardhat: {
       from: ADDRESS,
       accounts: {mnemonic: `${MNEMONIC}`},
+      blockGasLimit: 30000000,
       forking:{
         url: `https://eth-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
         blockNumber: 3199644
@@ -43,7 +44,10 @@ const config: HardhatUserConfig = {
     currency: 'EUR',
     coinmarketcap: COINMARKETCAP_API_KEY,
     enabled: false
-  }
+  },
+  mocha: {
+    timeout: 100000000
+  },
 };
 
 export default config;

@@ -3,7 +3,6 @@ import { TestERC20 } from "../../typechain-types/contracts/mocks/Erc20Mock.sol"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import { Escrow } from "../../typechain-types/contracts/Escrow"
 import { TestERC721 } from "../../typechain-types/contracts/mocks/Erc721Mock.sol"
-import { ContractType } from "hardhat/internal/hardhat-network/stack-traces/model"
 
 
 export async function createERC20(name: string, symbol: string, initialSupply: string): Promise<TestERC20> {

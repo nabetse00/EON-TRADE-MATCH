@@ -7,7 +7,7 @@ export const FLAT_FEES = ethers.utils.parseUnits("1.0", "mwei")
 
 export async function deployEscrowFixture() {
 
-    const [deployer, seller, buyer] = await ethers.getSigners();
+    const [deployer, seller, buyer, other] = await ethers.getSigners();
 
     const escrowFactory = await ethers.getContractFactory(ESCROW_CONTRACT);
     const escrow = await escrowFactory.deploy(UNLOCK_TIME, FLAT_FEES, deployer.address);
@@ -22,6 +22,7 @@ export async function deployEscrowFixture() {
 
     return {
         escrow: escrow, deployer: deployer, seller: seller, buyer: buyer,
+        other: other,
         fromTokenERC20: fromTokenERC20, toTokenERC20: toTokenERC20,
         fromTokenERC721: fromTokenERC721, toTokenERC721: toTokenERC721
 

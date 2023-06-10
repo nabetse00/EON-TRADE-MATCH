@@ -4,7 +4,6 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
-import "hardhat/console.sol";
 
 /**
  * @title General Escrow Smart Contract for tokens
@@ -14,6 +13,7 @@ import "hardhat/console.sol";
 contract Escrow is ERC721Holder {
     // libraries
     using SafeMath for uint256;
+
     // Constants
     uint256 internal constant DECIMALS = 1e18;
 
@@ -201,16 +201,12 @@ contract Escrow is ERC721Holder {
 
     function withdrawTrades(address seller) public noReentrant {
         for (uint i = tradesIds.length; i > 0; i--) {
-            console.log("index: ", i);
             Trade storage t = trades[tradesIds[i - 1]]; // test with memory
-            console.log("call time: ", block.timestamp);
-            console.log("expireTime: ", t.expireTime);
             if (t.owner == seller && t.expireTime < block.timestamp) {
                 // transfer token
                 transferAssetTo(t.fromAsset, seller, t.fromAsset.amount);
                 emit TradeRemoved(t);
                 // remove trade
-                console.log("trade id to remove: ", tradesIds[i - 1]);
                 delete trades[tradesIds[i - 1]];
                 tradesIds[i - 1] = tradesIds[tradesIds.length - 1];
                 tradesIds.pop();
@@ -289,55 +285,41 @@ contract Escrow is ERC721Holder {
     function matchTrade(Trade storage a) internal {
         if (tradesIds.length == 0) {
             // add to trades
-            console.log("pushing: ", a.tradeId);
             tradesIds.push(a.tradeId);
             return;
         }
 
         //loop
         for (uint256 i = tradesIds.length; i > 0; i--) {
-            console.log("index val: ", i);
             Trade storage b = trades[tradesIds[i - 1]];
             if (!(equalAssets(a.fromAsset, b.toAsset))) {
-                console.log("diff 1");
                 continue;
             }
             if (!(equalAssets(a.toAsset, b.fromAsset))) {
-                console.log("diff 2");
                 continue;
             }
 
             uint256 aFromAmount = a.fromAsset.amount;
             uint256 bFromAmount = b.fromAsset.amount;
 
-            console.log("from a amount: ", aFromAmount);
-            console.log("from b amount: ", bFromAmount);
-
             uint256 aToAmount = a.toAsset.amount;
             uint256 bToAmount = b.toAsset.amount;
-
-            console.log("to a amount: ", aToAmount);
-            console.log("to b amount: ", bToAmount);
 
             uint256 p1 = aToAmount.mul(DECIMALS).div(aFromAmount);
             uint256 p2 = bFromAmount.mul(DECIMALS).div(bToAmount);
 
-            console.log("p1: ", p1);
-            console.log("p2: ", p2);
-
             if (p1 != p2) {
-                console.log("diff 3");
                 continue;
             }
 
             if (aFromAmount == bToAmount) {
-                console.log("complete");
                 // complete amount
                 transferAssetTo(b.fromAsset, a.owner, bFromAmount);
                 transferAssetTo(a.fromAsset, b.owner, aFromAmount);
                 emit TradesMatched(a, b);
                 // remove b from trades
                 delete trades[b.tradeId]; // rem this is b !
+                tradesIds[i - 1] = tradesIds[tradesIds.length - 1];
                 tradesIds.pop();
                 //delete a only in mapping
                 delete trades[a.tradeId];
@@ -346,22 +328,25 @@ contract Escrow is ERC721Holder {
                 return;
             }
             if (aFromAmount > bToAmount && a.allowPartial) {
-                console.log("partial 1");
                 //partial trade amount
                 transferAssetTo(b.fromAsset, a.owner, bFromAmount);
                 transferAssetTo(a.fromAsset, b.owner, bToAmount);
+                // update a asset to amount
+                a.toAsset.amount -= bFromAmount;
                 emit TradesPartialyMatched(a, b);
                 // remove b from trades
                 delete trades[b.tradeId]; // rem this is b !
+                tradesIds[i - 1] = tradesIds[tradesIds.length - 1];
                 tradesIds.pop();
                 emit TradeRemoved(b);
                 continue;
             }
             if (aFromAmount < bToAmount && b.allowPartial) {
-                console.log("partial 2");
                 //partial trade amount a fullfiled so exit
                 transferAssetTo(b.fromAsset, a.owner, aToAmount);
                 transferAssetTo(a.fromAsset, b.owner, aFromAmount);
+                // update b asset to amount
+                b.toAsset.amount -= aFromAmount;
                 emit TradesPartialyMatched(b, a);
                 //delete a only in mapping
                 delete trades[a.tradeId];
@@ -370,7 +355,6 @@ contract Escrow is ERC721Holder {
                 return;
             }
         }
-        console.log("pushing2: ", a.tradeId);
         tradesIds.push(a.tradeId);
     }
 
@@ -422,10 +406,6 @@ contract Escrow is ERC721Holder {
         uint256 amount //uint256[] storage tokensIds
     ) internal {
         uint256[] storage tokensIds = nftData[assetId];
-        console.log("assetId: ", assetId);
-        console.log("send to: ", to);
-        console.log("amount: ", amount);
-        console.log("lenght: ", tokensIds.length);
         require(
             tokensIds.length >= amount,
             "Number of NFT to transfer exeeds given token Ids"
