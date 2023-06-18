@@ -7,7 +7,7 @@
     "test": "npx hardhat test",
     "coverage": "npx hardhat coverage",
     "compile": "npx hardhat compile",
-    "deploy": "echo \"Error: no deploy specified\" && exit 1"
+    "deploy": "npx hardhat run scripts/deploy.ts"
   },
   "author": "",
   "license": "ISC",

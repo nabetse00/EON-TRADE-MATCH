@@ -58,7 +58,7 @@ describe("Escrow Contract", function () {
 
             invalid_create = escrow.createTrade(buyer.address, fromAsset, [], toAsset, false, 100, { value: FLAT_FEES })
             await expect(invalid_create)
-                .to.be.revertedWith('ERC721 asset amount nust  match given tokensIds')
+                .to.be.revertedWith('ERC721 asset amount must match given tokensIds')
 
             fromAsset.amount = 0;
             invalid_create = escrow.createTrade(buyer.address, fromAsset, [], toAsset, false, 100, { value: FLAT_FEES })

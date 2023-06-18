@@ -166,7 +166,7 @@ contract Escrow is ERC721Holder {
             );
             require(
                 fromAssetTokensIds.length == a.amount,
-                "ERC721 asset amount nust  match given tokensIds"
+                "ERC721 asset amount must match given tokensIds"
             );
             return;
         }
@@ -222,12 +222,19 @@ contract Escrow is ERC721Holder {
         bool allowPartial_,
         uint256 duration
     ) public payable noReentrant {
-        require(duration > minLockTime, "Trade duration too low");
+        require(duration >= minLockTime, "Trade duration too low");
         require(msg.value >= flat_fee, "Trade flat_fee not met");
 
         // check correct data
         checkFromAssetValid(fromAsset_, fromAssetTokensIds);
         checkToAssetValid(toAsset_);
+
+        // valid to and from
+        require(
+            fromAsset_.assetAddress != toAsset_.assetAddress,
+            "Cannot exchange asset for the same asset"
+        );
+
         // generate asset ids
         fromAsset_.assetId = getAssetIdIndex();
         toAsset_.assetId = getAssetIdIndex();

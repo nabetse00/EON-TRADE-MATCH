@@ -21,29 +21,30 @@ const config: HardhatUserConfig = {
       },
     },
   },
-  defaultNetwork: "hardhat", 
+  defaultNetwork: "hardhat",
   networks: {
     tzen: {
       url: 'https://gobi-testnet.horizenlabs.io/ethv1',
-      accounts: {mnemonic: `${MNEMONIC}`},
+      accounts: { mnemonic: `${MNEMONIC}` },
       from: ADDRESS,
       gasPrice: "auto",
-      
+
     },
     hardhat: {
+      chainId: 1337,
       from: ADDRESS,
-      accounts: {mnemonic: `${MNEMONIC}`},
+      accounts: { mnemonic: `${MNEMONIC}` },
       blockGasLimit: 30000000,
-      forking:{
+      forking: {
         url: `https://eth-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
         blockNumber: 3199644
       }
     }
-  }, 
+  },
   gasReporter: {
     currency: 'EUR',
     coinmarketcap: COINMARKETCAP_API_KEY,
-    enabled: false
+    enabled: true
   },
   mocha: {
     timeout: 100000000

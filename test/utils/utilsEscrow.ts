@@ -21,7 +21,7 @@ export async function createERC721(name: string, symbol: string): Promise<TestER
 export async function tokenERC721SetUp(token: TestERC721, escrow: Escrow, deployer: SignerWithAddress, seller: SignerWithAddress, amount: number): Promise<string[]> {
     let tokensIds: string[] = []
     for (let index = 0; index < amount; index++) {
-        await token.connect(deployer).safeMint(seller.address)
+        await token.connect(deployer).safeMint(seller.address, "https://site.example/item-id-xx.json")
         const id = await token.tokenOfOwnerByIndex(seller.address, index)
         tokensIds.push(id.toString())
         await token.connect(seller).approve(escrow.address, id)
