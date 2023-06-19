@@ -172,6 +172,16 @@ contract Escrow is ERC721Holder {
         }
     }
 
+    function getTrades() public view returns (Trade[] memory) {
+        Trade[] memory trs = new Trade[](tradesIds.length);
+        Trade memory t;
+        for (uint i = 0; i < tradesIds.length; i++) {
+            t = trades[tradesIds[i]];
+            trs[i] = t;
+        }
+        return trs;
+    }
+
     function tradesOf(address seller) public view returns (Trade[] memory) {
         uint tradesLenght = 0;
         Trade memory t;

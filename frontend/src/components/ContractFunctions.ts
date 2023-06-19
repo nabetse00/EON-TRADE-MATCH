@@ -1,7 +1,7 @@
 import { erc20ABI, erc721ABI, prepareWriteContract, readContract, waitForTransaction, writeContract } from "@wagmi/core"
 import { AssetStruct, AssetTypes } from "../models/assets"
 import { parseEther } from "viem"
-import { CONFIRMATIONS, ESCROW_ABI, ESCROW_ADDRESS } from "../models/escrow"
+import { AssetContract, CONFIRMATIONS, ESCROW_ABI, ESCROW_ADDRESS } from "../models/escrow"
 
 export async function getEscrowTokenAllowance(owner: `0x${string}`, asset: AssetStruct): Promise<boolean> {
     const data = await readContract({
@@ -92,12 +92,7 @@ export async function get_flat_fee(): Promise<bigint> {
 }
 
 
-type AssetContract = {
-    assetId: bigint,
-    assetType: number,
-    assetAddress: `0x${string}`
-    amount: bigint
-}
+
 
 function convertAssetType(asset: AssetStruct): AssetContract {
 

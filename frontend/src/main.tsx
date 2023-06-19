@@ -14,6 +14,7 @@ import { MetaMaskConnector } from 'wagmi/connectors/metaMask'
 
 import { Chain } from 'wagmi'
 import MakeTradePage from './pages/MakeTrade.tsx';
+import ShowTrades from './pages/ShowTrades.tsx';
 
 export const eonGobi = {
   id: 1663,
@@ -55,9 +56,14 @@ const router = createBrowserRouter([
     element: <App />,
     errorElement: <ErrorPage />,
     children: [{
-      path: "/test",
+      path: "/make-trades",
       element: <MakeTradePage />,
-    },]
+    },
+    {
+      path: "/show-trades",
+      element: <ShowTrades />,
+    },
+    ]
   },
 ]);
 

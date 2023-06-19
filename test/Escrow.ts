@@ -238,6 +238,7 @@ describe("Escrow Contract", function () {
             await expect(await fromTokenERC20.balanceOf(escrow.address)).to.be.equal(0)
             await expect(await toTokenERC20.balanceOf(escrow.address)).to.be.equal(erc20_amount)
             await expect(await escrow.availableFees()).to.equal(FLAT_FEES.mul(2))
+            await expect((await escrow.getTrades()).length).to.be.equal(2)
         });
 
         it("Create correctly Zen => tokenA and tokenA => tokenB trades", async function () {
@@ -362,6 +363,7 @@ describe("Escrow Contract", function () {
             await expect(await fromTokenERC20.balanceOf(escrow.address)).to.be.equal(erc20_amount)
             await expect(await toTokenERC20.balanceOf(escrow.address)).to.be.equal(0)
             await expect(await escrow.availableFees()).to.equal(FLAT_FEES.mul(2))
+            await expect((await escrow.getTrades()).length).to.be.equal(2)
         });
 
         it("Create and not match Zen => tokenA and tokenA => zen trades on different price", async function () {
@@ -1852,6 +1854,7 @@ describe("Escrow Contract", function () {
         await expect((await escrow.tradesOf(seller.address)).length).to.be.equal(0)
         await expect((await escrow.tradesOf(buyer.address)).length).to.be.equal(0)
         await expect(await escrow.availableFees()).to.be.equal(FLAT_FEES.mul(2*numberOfTrades))
+        await expect((await escrow.getTrades()).length).to.be.equal(0)
 
         });
 
@@ -1936,6 +1939,7 @@ describe("Escrow Contract", function () {
         await expect((await escrow.tradesOf(seller.address)).length).to.be.equal(numberOfTrades)
         await expect((await escrow.tradesOf(buyer.address)).length).to.be.equal(0)
         await expect(await escrow.availableFees()).to.be.equal(FLAT_FEES.mul(2*numberOfTrades))
+        await expect((await escrow.getTrades()).length).to.be.equal(numberOfTrades)
 
         });
 
@@ -2020,6 +2024,7 @@ describe("Escrow Contract", function () {
         await expect((await escrow.tradesOf(seller.address)).length).to.be.equal(0)
         await expect((await escrow.tradesOf(buyer.address)).length).to.be.equal(numberOfTrades)
         await expect(await escrow.availableFees()).to.be.equal(FLAT_FEES.mul(2*numberOfTrades))
+        await expect((await escrow.getTrades()).length).to.be.equal(numberOfTrades)
 
         });
 
@@ -2634,6 +2639,7 @@ describe("Escrow Contract", function () {
         await expect((await escrow.tradesOf(seller.address)).length).to.be.equal(0)
         await expect((await escrow.tradesOf(other.address)).length).to.be.equal(0)
         await expect((await escrow.tradesOf(buyer.address)).length).to.be.equal(0)
+        await expect((await escrow.getTrades()).length).to.be.equal(0)
         await expect(await escrow.availableFees()).to.be.equal(FLAT_FEES.mul(3*numberOfTrades))
         await expect(await ethers.provider.getBalance(escrow.address)).to.be.equal(FLAT_FEES.mul(3*numberOfTrades))
         await expect(buyerBalAfter.sub(buyerBalBefore)).to.equal(total)

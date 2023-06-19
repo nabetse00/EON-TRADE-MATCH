@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import AssetSelectionComponent from "../components/AssetSelection";
 import { AssetStruct, AssetTypes } from "../models/assets";
-import { Button, Col, InputNumber, Modal, Row, Segmented, Space, Switch, Timeline, TimelineItemProps } from "antd";
+import { Button, Col, InputNumber, Modal, Row, Segmented, Space, Switch, Timeline, TimelineItemProps} from "antd";
 import AssetInfo from "../components/AssetInfo";
 import { ArrowRightOutlined, CheckCircleOutlined, CloseCircleOutlined } from "@ant-design/icons";
 
@@ -42,7 +42,7 @@ export default function MakeTradePage() {
         executeTrade().then(
             r => {
                 setIsPending(false)
-                if(r){
+                if (r) {
                     setAssetFrom(undefined)
                     setAssetTo(undefined)
                     //setIsModalExecuteOpen(false)
@@ -242,7 +242,7 @@ export default function MakeTradePage() {
     }
 
     const lockTimesDesc = ['min', '1 hour', '1 Day', '30 Days', '1 Year (365 Days)', 'Custom (seconds)']
-    const lockTimes = [100, 3600, 3600 * 24, 3600 * 24 * 30, 3600 * 24 * 30 * 365]
+    const lockTimes = [100, 3600, 3600 * 24, 3600 * 24 * 30, 3600 * 24 * 365]
 
     const [timeSegmented, setTimeSegmented] = useState("min")
     function changeLockSegmented(val: string) {
@@ -283,11 +283,13 @@ export default function MakeTradePage() {
 
 
 
+
     return (
         <>
             {address && !isConnecting && !isDisconnected ?
                 <>
                     <Row justify={"center"} gutter={[16, 16]}>
+                       
                         <Col lg={10} >
 
                             <AssetInfo title={"Asset to exchange"} asset={assetFrom} />
@@ -297,10 +299,10 @@ export default function MakeTradePage() {
                                     Select Asset
                                 </Button>
                                 <Button type="primary" icon={<CloseCircleOutlined />} onClick={
-                                    () => { 
+                                    () => {
                                         setAssetFrom(undefined)
                                     }
-                                        } danger>
+                                } danger>
                                     Reset Asset
                                 </Button>
                             </Space.Compact>
@@ -319,10 +321,10 @@ export default function MakeTradePage() {
                                 <Button type="primary" icon={<CheckCircleOutlined />} onClick={showModalTo} disabled={!assetFrom}>
                                     Select Asset
                                 </Button>
-                                <Button type="primary" icon={<CloseCircleOutlined />} 
-                                onClick={() => { 
-                                    setAssetTo(undefined) 
-                                    }} 
+                                <Button type="primary" icon={<CloseCircleOutlined />}
+                                    onClick={() => {
+                                        setAssetTo(undefined)
+                                    }}
                                     disabled={!assetFrom} danger>
                                     Reset Asset
                                 </Button>

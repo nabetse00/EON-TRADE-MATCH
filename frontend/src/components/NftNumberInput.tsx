@@ -24,33 +24,13 @@ export default function NftNumberInput(props: { amount:number, balance: number, 
             id='1'
             style={{ width: '260px' }}
             min={0}
-            max={props.balance}
+            //max={props.balance}
             step={1}
             value={inputValue}
             onChange={onChangeValue}
             addonAfter={"NFTs"} 
             defaultValue={0} />
-        <Slider
-
-            style={{ width: "250px" }}
-            tooltip={{ placement: 'bottom', formatter: (v: any) => `${v}%`, }}
-            //defaultValue={0}
-            marks={{
-                0: '0%',
-                50: '50%',
-                100: {
-                    style: {
-                        color: '#f50',
-                    },
-                    label: <strong>max</strong>,
-                },
-            }}
-            min={0}
-            max={100}
-            onChange={onChangePercent}
-            value={typeof inputValuePercent === 'number' ? inputValuePercent : 0}
-        />
-
+       
     </Space.Compact>
     );
 
