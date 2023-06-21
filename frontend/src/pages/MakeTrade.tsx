@@ -9,10 +9,6 @@ import { useAccount } from "wagmi";
 import { approveEscrowERC20, approveEscrowERC721, checkApprovedRC721, createTrade, getEscrowTokenAllowance } from "../components/ContractFunctions";
 import RequireConnection from "../components/RequireConnection";
 
-
-
-
-
 export default function MakeTradePage() {
 
     const { address, isConnecting, isDisconnected } = useAccount()
@@ -280,10 +276,7 @@ export default function MakeTradePage() {
             }
         }, [lockDuration]
     )
-
-
-
-
+    
     return (
         <>
             {address && !isConnecting && !isDisconnected ?

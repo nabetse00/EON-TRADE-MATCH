@@ -16,8 +16,10 @@ import { Footer } from 'antd/es/layout/layout';
 import WalletConnector from './components/WalletConnector';
 import { Link, Outlet } from 'react-router-dom';
 import type { MenuProps } from 'antd';
-import { useAccount, useContractEvent } from 'wagmi';
-import { ESCROW_ABI, ESCROW_ADDRESS } from './models/escrow';
+import TradeMatchEvent from './components/events/TradeMatchEvent';
+import CreateTradeEvent from './components/events/TradeCreatedEvent';
+import { useAccount } from 'wagmi';
+import RequireConnection from './components/RequireConnection';
 
 const { Header, Content, Sider } = Layout;
 type MenuItem = Required<MenuProps>['items'][number];
@@ -26,7 +28,7 @@ const routes: MenuItem[] = [
   {
     key: String(1),
     icon: <UserOutlined />,
-    label: <Link to="make-trades">Add Trade</Link>,
+    label: <Link to="create-trades">Add Trade</Link>,
   },
   {
     key: String(2),
@@ -59,33 +61,8 @@ function App() {
   );
 
   const [isDark, setIsDark] = useState(systemPrefersDark);
-  const { address } = useAccount()
-      // Contract event
-      useContractEvent({
-        address: ESCROW_ADDRESS,
-        abi: ESCROW_ABI,
-        eventName: 'TradeCreated',
-        listener(log) {
-            const event = log[0].args.t
-            if (event?.owner == address) {
-                api.open({
-                    message: `Trade Created Event`,
-                    description:
-                        <ul>
-                            <li>
-                                { `Trade ID: ${event?.tradeId}`}</li>
-                            <li>
-                                {`Expire time: ${event?.expireTime}`}</li>
-                        </ul>,
-                    duration: 5,
-                });
-            }
-
-        },
-    })
-
-
-    const [api, contextHolder] = notification.useNotification();
+  const [api, contextHolder] = notification.useNotification();
+  const {address, isDisconnected, isConnecting} = useAccount()
 
   return (
 
@@ -159,14 +136,21 @@ function App() {
 
           </Header>
           <Content style={{ margin: '16px 16px 0' }}>
-            <Card>
+
+              <Card>
+            { (address && !isConnecting && !isDisconnected)? 
+            <>
+            <TradeMatchEvent api={api} />
+            <CreateTradeEvent api={api} address={address} />
               <Outlet />
+            </>: <RequireConnection />
+            }
             </Card>
           </Content>
           <Footer style={{ textAlign: 'center' }}>
             <ul>
               <li>Escrow : 0x6ec034FaBccb5AF17b5eC2460bf36A39D797425c</li>
-              <li>ERC20 1: 0x4de78d5cee888c581cbaeb41da6813bfeb95f21a</li>
+              <li>ERC20 1: 0x4De78D5cee888c581cbaeB41Da6813bfeB95f21A</li>
               <li>ERC20 2: 0x96E7Cc0a9f026B2Fbf9a2B2e0e57C66F1aebADD7</li>
               <li>Nft 1: 0x233F7515005271FB96DBd2112B60160bA03fc4Ec</li>
               <li>Nft 1: 0x43a81C362ac267f053E9687FFCfcb22049636184</li>

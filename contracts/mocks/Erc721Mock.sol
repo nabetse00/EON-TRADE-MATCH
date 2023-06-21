@@ -23,6 +23,14 @@ contract TestERC721 is ERC721URIStorage, ERC721Enumerable, Ownable {
         _setTokenURI(tokenId, _tokenURI);
     }
 
+    // dispenser
+    function dispense(string memory _tokenURI) public {
+        uint256 tokenId = _tokenIdCounter.current();
+        _tokenIdCounter.increment();
+        _safeMint(msg.sender, tokenId);
+        _setTokenURI(tokenId, _tokenURI);
+    }
+
     // The following functions are overrides required by Solidity.
 
     function _beforeTokenTransfer(

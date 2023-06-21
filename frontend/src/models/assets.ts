@@ -1,3 +1,5 @@
+export const ADDRESS_ZERO = `0x0000000000000000000000000000000000000000` as `0x${string}`
+
 export enum AssetTypes {
     NATIVE_ZEN,
     ERC20_TOKEN,
@@ -9,5 +11,5 @@ export type AssetStruct = {
     assetType: AssetTypes;
     assetAddress: `0x${string}`;
     amount: string;
-    tokekenIds?: bigint[];
+    tokekenIds: bigint[];
 };

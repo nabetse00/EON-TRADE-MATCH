@@ -17,7 +17,8 @@ const { Text } = Typography;
 export default function WalletConnector() {
     const { address, isConnected } = useAccount()
     const { data } = useBalance({
-        address: address
+        address: address,
+        watch: true,
     })
     const { connect, connectors, error, isLoading, pendingConnector } =
         useConnect()

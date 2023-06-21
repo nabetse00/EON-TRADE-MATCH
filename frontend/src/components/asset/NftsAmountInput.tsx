@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { erc721ABI } from "wagmi";
 import { readContract } from '@wagmi/core'
-import RenderNFT from "./RenderNFT";
+import RenderNFT from "../RenderNFT";
 import Transfer, { TransferDirection } from "antd/es/transfer";
-
+import { AssetStruct } from "../../models/assets";
 
 
 interface RecordType {
@@ -15,37 +15,37 @@ interface RecordType {
 
 
 
-export default function NftAmountInput(props: {
+export default function NFTTokensInput(props: {
     address: string,
-    nftAddress: string,
-    amount: number,
+    //nftAddress: string,
+    //amount: number,
     balance: number,
-    setAmount: (arg0: number) => void;
-    setTokesnIdsToTrade: (arg0: bigint[]) => void,
+    asset: AssetStruct,
+    setAsset: (arg: AssetStruct) => void,
 }) {
 
     const [tokenIds, setTokenIds] = useState<bigint[]>([]);
 
     async function findUserTokens(): Promise<bigint[]> {
         const totalSupply = await readContract({
-            address: props.nftAddress as `0x${string}`,
+            address: props.asset.assetAddress as `0x${string}`,
             abi: erc721ABI,
             functionName: 'totalSupply',
         })
         const tIds: bigint[] = []
 
-        console.log(`supply is: ${totalSupply}`)
+        // console.log(`supply is: ${totalSupply}`)
 
         for (let index = 0; index < Number(totalSupply); index++) {
             const tokId = await readContract({
-                address: props.nftAddress as `0x${string}`,
+                address: props.asset.assetAddress as `0x${string}`,
                 abi: erc721ABI,
                 functionName: 'tokenByIndex',
                 args: [BigInt(index)]
             })
 
             const owner = await readContract({
-                address: props.nftAddress as `0x${string}`,
+                address: props.asset.assetAddress as `0x${string}`,
                 abi: erc721ABI,
                 functionName: 'ownerOf',
                 args: [BigInt(tokId)]
@@ -65,7 +65,7 @@ export default function NftAmountInput(props: {
                 }
             )
         },
-        [props.address, props.nftAddress]
+        [props.address, props.asset.assetAddress]
     )
 
     useEffect(
@@ -83,18 +83,26 @@ export default function NftAmountInput(props: {
             // console.log(`target keys: ${targetKeys}`)
             const tradeTokensIds = []
             for (let index = 0; index < targetKeys.length; index++) {
-                tradeTokensIds.push(tradeData[parseInt(targetKeys[index])].tokenId )
+                tradeTokensIds.push(tradeData[parseInt(targetKeys[index])].tokenId)
             }
-            // console.log(`target keys: ${tradeTokensIds}`)
-            props.setTokesnIdsToTrade(tradeTokensIds)
-            props.setAmount(tradeTokensIds.length)
+
+            const newAsset:AssetStruct = {
+                assetId: props.asset.assetId,
+                assetType: props.asset.assetType,
+                assetAddress: props.asset.assetAddress,
+                amount: `${tradeTokensIds.length}`,
+                tokekenIds: tradeTokensIds
+            }
+            props.setAsset(newAsset)
+            // props.setTokesnIdsToTrade(tradeTokensIds)
+            // props.setAmount(tradeTokensIds.length)
         },
         [targetKeys]
     )
 
     const setTransferData = () => {
         const tempTargetKeys = [];
-        const tempMockData = [];
+        const tempData = [];
         for (let i = 0; i < tokenIds.length; i++) {
             const data = {
                 key: i.toString(),
@@ -105,9 +113,9 @@ export default function NftAmountInput(props: {
             if (data.chosen) {
                 tempTargetKeys.push(data.key);
             }
-            tempMockData.push(data);
+            tempData.push(data);
         }
-        setTradeData(tempMockData);
+        setTradeData(tempData);
         setTargetKeys(tempTargetKeys);
     };
 
@@ -138,7 +146,7 @@ export default function NftAmountInput(props: {
             onChange={handleChange}
             onSearch={handleSearch}
             operations={['Add to trade', 'Remove from trade']}
-            render={(item) => <RenderNFT key={item.key} added={true} tokenId={item.tokenId} nftAddress={props.nftAddress as `0x${string}`} />}
+            render={(item) => <RenderNFT key={item.key} added={true} tokenId={item.tokenId} nftAddress={props.asset.assetAddress as `0x${string}`} />}
             titles={["Your NFTs", "NFTs to trade"]}
         />
     );

@@ -246,10 +246,10 @@ contract Escrow is ERC721Holder {
         );
 
         // generate asset ids
-        fromAsset_.assetId = getAssetIdIndex();
-        toAsset_.assetId = getAssetIdIndex();
+        fromAsset_.assetId = _getAssetIdIndex();
+        toAsset_.assetId = _getAssetIdIndex();
         // create trade
-        uint256 tradeId_ = getTradeIdIndex();
+        uint256 tradeId_ = _getTradeIdIndex();
         Trade storage ta = trades[tradeId_];
         ta.tradeId = tradeId_;
         ta.owner = owner_;
@@ -322,8 +322,8 @@ contract Escrow is ERC721Holder {
             uint256 aToAmount = a.toAsset.amount;
             uint256 bToAmount = b.toAsset.amount;
 
-            uint256 p1 = aToAmount.mul(DECIMALS).div(aFromAmount);
-            uint256 p2 = bFromAmount.mul(DECIMALS).div(bToAmount);
+            uint256 p1 = _amount(a.toAsset).mul(DECIMALS).div(_amount(a.fromAsset));
+            uint256 p2 = _amount(b.fromAsset).mul(DECIMALS).div(_amount(b.toAsset));
 
             if (p1 != p2) {
                 continue;
@@ -466,11 +466,18 @@ contract Escrow is ERC721Holder {
         return true;
     }
 
-    function getTradeIdIndex() internal returns (uint256) {
+    function _getTradeIdIndex() internal returns (uint256) {
         return lastTradeIndex++;
     }
 
-    function getAssetIdIndex() internal returns (uint256) {
+    function _getAssetIdIndex() internal returns (uint256) {
         return lastAssetIndex++;
+    }
+
+    function _amount(Asset memory asset) internal pure returns(uint256){
+        if(asset.assetType == AssetTypes.ERC721_NFT){
+            return (asset.amount * DECIMALS);
+        }
+        return asset.amount;
     }
 }
