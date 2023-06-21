@@ -317,7 +317,7 @@ export default function ShowTrades() {
       render: (allow: boolean) => <>{allow ? "YES" : "NO"}</>
     },
     {
-      title: "Expire Date",
+      title: "Unlock Date",
       dataIndex: 'expireTime',
       key: 'expireTime',
       render: (exp: bigint) => <>{formatDate(exp)}</>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { ADDRESS_ZERO, AssetStruct, AssetTypes } from "../models/assets";
-import { Button, Divider, Form, InputNumber, Modal, Radio, RadioChangeEvent, Segmented, Space, Spin, Switch, Timeline, TimelineItemProps } from "antd";
+import { Button, Card, Col, Divider, Form, InputNumber, Modal, Radio, RadioChangeEvent, Row, Segmented, Space, Spin, Switch, Timeline, TimelineItemProps } from "antd";
 import { useAccount, useBalance } from "wagmi";
 import RequireConnection from "../components/RequireConnection";
 import NativeAmountAssetInput from "../components/asset/NativeAssetInput";
@@ -11,6 +11,7 @@ import NFTTokensInput from "../components/asset/NftsAmountInput";
 import PriceComponent from "../components/asset/PriceComponent";
 import NftAssetNumberInput from "../components/asset/NftAssetNumberInput";
 import { approveEscrowERC20, approveEscrowERC721, checkApprovedRC721, createTrade, getEscrowTokenAllowance } from "../components/ContractFunctions";
+import { ArrowDownOutlined, DoubleRightOutlined, DownSquareOutlined } from "@ant-design/icons";
 
 export default function CreateTrade() {
 
@@ -66,7 +67,7 @@ export default function CreateTrade() {
     const [assetTo, setAssetTo] = useState<AssetStruct>(INIT_ASSET)
     const [isValidAssetTo, setIsValidAssetTo] = useState(false)
 
-    const [toAssetType, setToAssetType] = useState<string|undefined>(undefined);
+    const [toAssetType, setToAssetType] = useState<string | undefined>(undefined);
     const [toAssetBalance, setToAssetBalance] = useState<bigint>();
     const [toBalanceValidation, setToBalanceValidation] = useState<boolean>();
 
@@ -423,7 +424,6 @@ export default function CreateTrade() {
         )
     };
 
-
     return (
         <>
             {(address && !isConnecting && !isDisconnected) ?
@@ -431,276 +431,286 @@ export default function CreateTrade() {
                     form={form}
                     layout="vertical"
                 >
-                    <Divider orientation="left">Asset to Trade</Divider>
-                    <Form.Item
-                        label="What asset you want to trade ?"
-                        name="fromAssetType"
-                        required
-                        initialValue={assetTypesOptions[0]}
-                    >
-                        <Radio.Group
-                            optionType="button"
-                            buttonStyle="solid"
-                            options={assetTypesOptions} onChange={onChangeFromAssetType} value={fromAssetType} />
 
-                    </Form.Item>
-                    {(assetFrom?.assetType == AssetTypes.NATIVE_ZEN) &&
-                        <Form.Item
-                            label="How much Zen you want to spend?"
-                            name="fromAssetAmountZen"
-                            required
-                        >
-                            {!isLoading ?
-                                <NativeAmountAssetInput from={true} balance={balance!.formatted} asset={assetFrom} setAsset={setAssetFrom} />
-                                : <Spin />
-                            }
-                        </Form.Item>
-                    }
-                    {(assetFrom?.assetType == AssetTypes.ERC20_TOKEN) &&
-                        <>
-                            <Form.Item
-                                label="Enter ERC20 Token contract Address to exchange"
-                                name="fromAssetAddress"
-                                validateStatus={fromBalanceValidation ? "success" : "error"}
-                                help={fromBalanceValidation ? "" : "Contract address not valid"}
-                                hasFeedback
-                                required
-                            >
-                                {!isLoading ?
-                                    <ContractERC20Input
-                                        address={address} asset={assetFrom}
-                                        setAsset={setAssetFrom}
-                                        balanceToken={fromAssetBalance!}
-                                        setBalanceToken={setFromAssetBalance}
-                                        validation={fromBalanceValidation!}
-                                        setValidation={setFromBalanceValidation}
-                                    />
-                                    : <Spin />
-                                }
-                            </Form.Item>
-                            {assetFrom?.assetAddress && fromBalanceValidation &&
+                    <Row gutter={[16, 16]} align={"middle"} justify={"center"}>
+                        <Col>
+
+                            <Card title={`From Asset`}>
+
                                 <Form.Item
-                                    label="How much Tokens to spend?"
-                                    name="fromAssetAmountZen"
+                                    label="What asset you want to trade ?"
+                                    name="fromAssetType"
                                     required
+                                    initialValue={assetTypesOptions[0]}
                                 >
-                                    {!isLoading ?
-                                        <NativeAmountAssetInput from={true} balance={formatEther(fromAssetBalance!)} asset={assetFrom} setAsset={setAssetFrom} />
-                                        : <Spin />
-                                    }
+                                    <Radio.Group
+                                        optionType="button"
+                                        buttonStyle="solid"
+                                        options={assetTypesOptions} onChange={onChangeFromAssetType} value={fromAssetType} />
+
                                 </Form.Item>
-                            }
-                        </>
-
-                    }
-                    {(assetFrom?.assetType == AssetTypes.ERC721_NFT) &&
-                        <>
-                            <Form.Item
-                                label="Enter ERC721 NFTs contract Address to exchange"
-                                name="fromAssetAddress"
-                                validateStatus={fromBalanceValidation ? "success" : "error"}
-                                help={fromBalanceValidation ? "" : "Contract address not valid"}
-                                hasFeedback
-                                required
-                            >
-                                {!isLoading ?
-                                    <ContractERC721Input
-                                        address={address} asset={assetFrom}
-                                        setAsset={setAssetFrom}
-                                        balanceNft={fromAssetBalance!}
-                                        setBalanceNfts={setFromAssetBalance}
-                                        validation={fromBalanceValidation!}
-                                        setValidation={setFromBalanceValidation}
-                                    />
-                                    : <Spin />
+                                {(assetFrom?.assetType == AssetTypes.NATIVE_ZEN) &&
+                                    <Form.Item
+                                        label="How much Zen you want to spend?"
+                                        name="fromAssetAmountZen"
+                                        required
+                                    >
+                                        {!isLoading ?
+                                            <NativeAmountAssetInput from={true} balance={balance!.formatted} asset={assetFrom} setAsset={setAssetFrom} />
+                                            : <Spin />
+                                        }
+                                    </Form.Item>
                                 }
-                            </Form.Item>
-                            {assetFrom?.assetAddress && fromBalanceValidation &&
+                                {(assetFrom?.assetType == AssetTypes.ERC20_TOKEN) &&
+                                    <>
+                                        <Form.Item
+                                            label="Enter ERC20 Token contract Address to exchange"
+                                            name="fromAssetAddress"
+                                            validateStatus={fromBalanceValidation ? "success" : "error"}
+                                            help={fromBalanceValidation ? "" : "Contract address not valid"}
+                                            hasFeedback
+                                            required
+                                        >
+                                            {!isLoading ?
+                                                <ContractERC20Input
+                                                    address={address} asset={assetFrom}
+                                                    setAsset={setAssetFrom}
+                                                    balanceToken={fromAssetBalance!}
+                                                    setBalanceToken={setFromAssetBalance}
+                                                    validation={fromBalanceValidation!}
+                                                    setValidation={setFromBalanceValidation}
+                                                />
+                                                : <Spin />
+                                            }
+                                        </Form.Item>
+                                        {assetFrom?.assetAddress && fromBalanceValidation &&
+                                            <Form.Item
+                                                label="How much Tokens to spend?"
+                                                name="fromAssetAmountZen"
+                                                required
+                                            >
+                                                {!isLoading ?
+                                                    <NativeAmountAssetInput from={true} balance={formatEther(fromAssetBalance!)} asset={assetFrom} setAsset={setAssetFrom} />
+                                                    : <Spin />
+                                                }
+                                            </Form.Item>
+                                        }
+                                    </>
+
+                                }
+                                {(assetFrom?.assetType == AssetTypes.ERC721_NFT) &&
+                                    <>
+                                        <Form.Item
+                                            label="Enter ERC721 NFTs contract Address to exchange"
+                                            name="fromAssetAddress"
+                                            validateStatus={fromBalanceValidation ? "success" : "error"}
+                                            help={fromBalanceValidation ? "" : "Contract address not valid"}
+                                            hasFeedback
+                                            required
+                                        >
+                                            {!isLoading ?
+                                                <ContractERC721Input
+                                                    address={address} asset={assetFrom}
+                                                    setAsset={setAssetFrom}
+                                                    balanceNft={fromAssetBalance!}
+                                                    setBalanceNfts={setFromAssetBalance}
+                                                    validation={fromBalanceValidation!}
+                                                    setValidation={setFromBalanceValidation}
+                                                />
+                                                : <Spin />
+                                            }
+                                        </Form.Item>
+                                        {assetFrom?.assetAddress && fromBalanceValidation &&
+                                            <Form.Item
+                                                label="How much NFTs to spend?"
+                                                name="fromAssetAmountZen"
+                                                required
+                                            >
+                                                {!isLoading ?
+                                                    <NFTTokensInput
+                                                        balance={Number(fromAssetBalance)}
+                                                        asset={assetFrom}
+                                                        setAsset={setAssetFrom}
+                                                        address={address}
+                                                    />
+                                                    : <Spin />
+                                                }
+                                            </Form.Item>
+                                        }
+                                    </>
+                                }
+                            </Card>
+                        </Col>
+
+                        <Col>
+                            <DoubleRightOutlined /><DoubleRightOutlined />
+                        </Col>
+
+                        <Col>
+                            <Card title={`To Asset`}>
                                 <Form.Item
-                                    label="How much NFTs to spend?"
-                                    name="fromAssetAmountZen"
+                                    label="What asset you want to get?"
+                                    name="toAssetType"
                                     required
+                                    initialValue={null}
                                 >
-                                    {!isLoading ?
-                                        <NFTTokensInput
-                                            balance={Number(fromAssetBalance)}
-                                            asset={assetFrom}
-                                            setAsset={setAssetFrom}
-                                            address={address}
+                                    <Radio.Group
+                                        optionType="button"
+                                        buttonStyle="solid"
+                                        options={(fromAssetType != 'Native ZEN') ? assetTypesOptions : assetTypesOptions.filter((v) => v != fromAssetType)} onChange={onChangeToAssetType} value={toAssetType} />
+
+                                </Form.Item>
+
+                                {toAssetType && (assetTo?.assetType == AssetTypes.NATIVE_ZEN) &&
+                                    <>
+                                        <PriceComponent assetFrom={assetFrom} assetTo={assetTo} />
+                                        <Form.Item
+                                            label="How much Zen do you want to get?"
+                                            name="toAmountZen"
+                                            required
+                                        >
+                                            {!isLoading ?
+                                                <NativeAmountAssetInput from={false} balance={"0"} asset={assetTo} setAsset={setAssetTo} />
+                                                : <Spin />
+                                            }
+                                        </Form.Item>
+
+                                    </>
+                                }
+                                {toAssetType && (assetTo?.assetType == AssetTypes.ERC20_TOKEN) &&
+                                    <>
+                                        <Form.Item
+                                            label="Enter ERC20 Token contract Address to get"
+                                            name="toAssetAddress"
+                                            validateStatus={toBalanceValidation ? "success" : "error"}
+                                            help={toBalanceValidation ? "" : "Contract address not valid"}
+                                            hasFeedback
+                                            required
+                                        >
+                                            {!isLoading ?
+                                                <ContractERC20Input
+                                                    address={address} asset={assetTo}
+                                                    setAsset={setAssetTo}
+                                                    balanceToken={toAssetBalance!}
+                                                    setBalanceToken={setToAssetBalance}
+                                                    validation={toBalanceValidation!}
+                                                    setValidation={setToBalanceValidation}
+                                                />
+                                                : <Spin />
+                                            }
+                                        </Form.Item>
+                                        {assetTo?.assetAddress && toBalanceValidation &&
+                                            <>
+                                                <PriceComponent assetFrom={assetFrom} assetTo={assetTo} />
+                                                <Form.Item
+                                                    label="How much Tokens do you want to get?"
+                                                    name="toAssetAmountZen"
+                                                    required
+                                                >
+                                                    {!isLoading ?
+                                                        <NativeAmountAssetInput from={false} balance={formatEther(toAssetBalance!)} asset={assetTo} setAsset={setAssetTo} />
+                                                        : <Spin />
+                                                    }
+                                                </Form.Item>
+
+                                            </>
+                                        }
+                                    </>
+
+                                }
+
+
+
+                                {toAssetType && (assetTo?.assetType == AssetTypes.ERC721_NFT) &&
+                                    <>
+                                        <Form.Item
+                                            label="Enter ERC721 NFTs contract Address to get"
+                                            name="fromAssetAddress"
+                                            validateStatus={toBalanceValidation ? "success" : "error"}
+                                            help={toBalanceValidation ? "" : "Contract address not valid"}
+                                            hasFeedback
+                                            required
+                                        >
+                                            {!isLoading ?
+                                                <ContractERC721Input
+                                                    address={address} asset={assetTo}
+                                                    setAsset={setAssetTo}
+                                                    balanceNft={toAssetBalance!}
+                                                    setBalanceNfts={setToAssetBalance}
+                                                    validation={toBalanceValidation!}
+                                                    setValidation={setToBalanceValidation}
+                                                />
+                                                : <Spin />
+                                            }
+                                        </Form.Item>
+                                        {assetTo?.assetAddress && toBalanceValidation &&
+                                            <>
+                                                <PriceComponent assetFrom={assetFrom} assetTo={assetTo} />
+                                                <Form.Item
+                                                    label="How much NFTs to get?"
+                                                    name="toAssetAmountZen"
+                                                    required
+                                                >
+                                                    {!isLoading ?
+                                                        <NftAssetNumberInput
+                                                            setAsset={setAssetTo}
+                                                            asset={assetTo}
+                                                        />
+                                                        : <Spin />
+                                                    }
+                                                </Form.Item>
+                                            </>
+                                        }
+                                    </>
+                                }
+                            </Card>
+                        </Col>
+                    </Row>
+
+                    <Row align={"middle"} justify={"center"} gutter={[16, 16]} style={{ marginTop: "2em", marginBottom:"2em" }}>
+                        <ArrowDownOutlined /><ArrowDownOutlined /><ArrowDownOutlined /><ArrowDownOutlined />
+                    </Row>
+
+
+                    <Row align={"middle"} justify={"center"} gutter={[16, 16]} style={{ margin: "2em" }}>
+                        <Col>
+                            <Card title={`Execute Trade`}>
+                                <Form.Item>
+                                    <Space style={{ marginTop: "10px", marginLeft: "1em" }} direction="vertical">
+                                        <Button type="primary" onClick={showModalExecute} disabled={!isValidAssetFrom || !isValidAssetTo}>
+                                            Add Trade to Escrow
+                                        </Button>
+                                        Allow Partial Trade Match:
+                                        <Switch
+                                            onChange={() => setAllowPartialTrade(!allowPartialTrade)}
+                                            checkedChildren="Yes"
+                                            unCheckedChildren="No"
+                                            defaultChecked
+                                            disabled={!isValidAssetFrom || !isValidAssetTo}
                                         />
-                                        : <Spin />
-                                    }
+                                        Lock duration (Any one can remove your trade passed lock time):
+                                        <Segmented
+                                            value={timeSegmented}
+                                            options={lockTimesDesc}
+                                            onChange={(e) => changeLockSegmented(e.toString())}
+                                            disabled={!isValidAssetFrom || !isValidAssetTo}
+                                        />
+                                        <InputNumber style={{ width: "auto" }}
+                                            value={lockDuration}
+                                            min={100}
+                                            about={"Set lock time duration"}
+                                            onChange={(e) => setLockDuration(e!)}
+                                        />
+
+                                        <Modal width={720} title={"Trade execution"} open={isModalExecuteOpen} footer={null} closable={true} onCancel={handleCancelExcute} >
+                                            <Timeline mode={"left"} items={items} pending={isPending ? "waiting for confirmations" : undefined}>
+                                            </Timeline>
+                                        </Modal>
+                                    </Space>
                                 </Form.Item>
-                            }
-                        </>
-                    }
-                    <Divider orientation="left">Asset to Get</Divider>
-
-                    <Form.Item
-                        label="What asset you want to get?"
-                        name="toAssetType"
-                        required
-                        initialValue={null}
-                    >
-                        <Radio.Group
-                            optionType="button"
-                            buttonStyle="solid"
-                            options={assetTypesOptions.filter((v) => v != fromAssetType)} onChange={onChangeToAssetType} value={toAssetType} />
-
-                    </Form.Item>
-
-                    { toAssetType  && (assetTo?.assetType == AssetTypes.NATIVE_ZEN) &&
-                        <>
-                            <PriceComponent assetFrom={assetFrom} assetTo={assetTo} />
-                            <Form.Item
-                                label="How much Zen do you want to get?"
-                                name="toAmountZen"
-                                required
-                            >
-                                {!isLoading ?
-                                    <NativeAmountAssetInput from={false} balance={"0"} asset={assetTo} setAsset={setAssetTo} />
-                                    : <Spin />
-                                }
-                            </Form.Item>
-
-                        </>
-                    }
-                    {toAssetType && (assetTo?.assetType == AssetTypes.ERC20_TOKEN) &&
-                        <>
-                            <Form.Item
-                                label="Enter ERC20 Token contract Address to get"
-                                name="toAssetAddress"
-                                validateStatus={toBalanceValidation ? "success" : "error"}
-                                help={toBalanceValidation ? "" : "Contract address not valid"}
-                                hasFeedback
-                                required
-                            >
-                                {!isLoading ?
-                                    <ContractERC20Input
-                                        address={address} asset={assetTo}
-                                        setAsset={setAssetTo}
-                                        balanceToken={toAssetBalance!}
-                                        setBalanceToken={setToAssetBalance}
-                                        validation={toBalanceValidation!}
-                                        setValidation={setToBalanceValidation}
-                                    />
-                                    : <Spin />
-                                }
-                            </Form.Item>
-                            {assetTo?.assetAddress && toBalanceValidation &&
-                                <>
-                                    <PriceComponent assetFrom={assetFrom} assetTo={assetTo} />
-                                    <Form.Item
-                                        label="How much Tokens do you want to get?"
-                                        name="toAssetAmountZen"
-                                        required
-                                    >
-                                        {!isLoading ?
-                                            <NativeAmountAssetInput from={false} balance={formatEther(toAssetBalance!)} asset={assetTo} setAsset={setAssetTo} />
-                                            : <Spin />
-                                        }
-                                    </Form.Item>
-
-                                </>
-                            }
-                        </>
-
-                    }
-
-
-
-                    {toAssetType  && (assetTo?.assetType == AssetTypes.ERC721_NFT) &&
-                        <>
-                            <Form.Item
-                                label="Enter ERC721 NFTs contract Address to get"
-                                name="fromAssetAddress"
-                                validateStatus={toBalanceValidation ? "success" : "error"}
-                                help={toBalanceValidation ? "" : "Contract address not valid"}
-                                hasFeedback
-                                required
-                            >
-                                {!isLoading ?
-                                    <ContractERC721Input
-                                        address={address} asset={assetTo}
-                                        setAsset={setAssetTo}
-                                        balanceNft={toAssetBalance!}
-                                        setBalanceNfts={setToAssetBalance}
-                                        validation={toBalanceValidation!}
-                                        setValidation={setToBalanceValidation}
-                                    />
-                                    : <Spin />
-                                }
-                            </Form.Item>
-                            {assetTo?.assetAddress && toBalanceValidation &&
-                                <>
-                                    <PriceComponent assetFrom={assetFrom} assetTo={assetTo} />
-                                    <Form.Item
-                                        label="How much NFTs to get?"
-                                        name="toAssetAmountZen"
-                                        required
-                                    >
-                                        {!isLoading ?
-                                            <NftAssetNumberInput
-                                                setAsset={setAssetTo}
-                                                asset={assetTo}
-                                            />
-                                            : <Spin />
-                                        }
-                                    </Form.Item>
-                                </>
-                            }
-                        </>
-                    }
-
-                    <Divider orientation="left">Execute Trade</Divider>
-                    <Form.Item>
-                        <Space style={{ marginTop: "10px", marginLeft: "1em" }} direction="vertical">
-                            Allow Partial Trade Match:
-                            <Switch
-                                onChange={() => setAllowPartialTrade(!allowPartialTrade)}
-                                checkedChildren="Yes"
-                                unCheckedChildren="No"
-                                defaultChecked
-                                disabled={!isValidAssetFrom || !isValidAssetTo}
-                            />
-                            Lock duration (Any one can remove your trade passed lock time):
-                            <Segmented
-                                value={timeSegmented}
-                                options={lockTimesDesc}
-                                onChange={(e) => changeLockSegmented(e.toString())}
-                                disabled={!isValidAssetFrom || !isValidAssetTo}
-                            />
-                            <InputNumber style={{ width: "auto" }}
-                                value={lockDuration}
-                                min={100}
-                                about={"Set lock time duration"}
-                                onChange={(e) => setLockDuration(e!)}
-                            />
-                            <Button type="primary" onClick={showModalExecute} disabled={!isValidAssetFrom || !isValidAssetTo}>
-                                Add Trade to Escrow
-                            </Button>
-                            <Modal width={720} title={"Trade execution"} open={isModalExecuteOpen} footer={null} closable={true} onCancel={handleCancelExcute} >
-                                <Timeline mode={"left"} items={items} pending={isPending ? "waiting for confirmations" : undefined}>
-                                </Timeline>
-                            </Modal>
-                        </Space>
-                    </Form.Item>
-
-                    {assetFrom && `From=========================`}<br />
-                    {assetFrom && `From asset addr: ${assetFrom.assetAddress}`}<br />
-                    {assetFrom && `From asset type: ${assetFrom.assetType}`}<br />
-                    {assetFrom && `From asset amount: ${assetFrom.amount}`}<br />
-                    {assetFrom && `From asset tokens: ${assetFrom.tokekenIds}`}<br />
-                    {assetFrom && `From asset tokens length: ${assetFrom.tokekenIds.length}`}<br />
-                    {assetFrom && `To==========================`}<br />
-                    {assetFrom && `To asset addr: ${assetTo.assetAddress}`}<br />
-                    {assetFrom && `To asset type: ${assetTo.assetType}`}<br />
-                    {assetFrom && `To asset amount: ${assetTo.amount}`}<br />
-                    {assetFrom && `To asset tokens: ${assetTo.tokekenIds}`}<br />
-                    {assetFrom && `To asset tokens length: ${assetTo.tokekenIds.length}`}<br />
-                    {`validity ${isValidAssetFrom} and ${isValidAssetTo}`}
-                    {assetFrom && `To==========================`}<br />
-                    {`trade params ${allowPartialTrade} and ${lockDuration}`}
+                            </Card>
+                        </Col>
+                    </Row>
                 </Form >
                 : <RequireConnection />
             }

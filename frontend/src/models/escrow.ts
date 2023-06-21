@@ -1,6 +1,6 @@
 import { parseUnits } from "viem"
 
-export const ESCROW_ADDRESS: `0x${string}` = "0x6ec034FaBccb5AF17b5eC2460bf36A39D797425c"
+export const ESCROW_ADDRESS: `0x${string}` = import.meta.env.VITE_ESCROW_ADDRESS
 export const CONFIRMATIONS: number = 10
 
 export const ESCROW_ABI = [

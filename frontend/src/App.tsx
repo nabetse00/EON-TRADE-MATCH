@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { geekblue } from '@ant-design/colors';
 
 
-import { MenuFoldOutlined, MenuUnfoldOutlined, UploadOutlined, UserOutlined, VideoCameraOutlined } from '@ant-design/icons';
+import { CreditCardOutlined, LogoutOutlined, MenuFoldOutlined, MenuUnfoldOutlined, ShoppingCartOutlined, UploadOutlined, UserOutlined, VideoCameraOutlined } from '@ant-design/icons';
 import { Button, Card, Col, Layout, Menu, Row, Space, Switch } from 'antd';
 
 
@@ -20,6 +20,9 @@ import TradeMatchEvent from './components/events/TradeMatchEvent';
 import CreateTradeEvent from './components/events/TradeCreatedEvent';
 import { useAccount } from 'wagmi';
 import RequireConnection from './components/RequireConnection';
+import { ESCROW_ADDRESS } from './models/escrow';
+import { ERC20_MOCK_ADDRESS_A, ERC20_MOCK_ADDRESS_B } from './models/erc20Mock';
+import { ERC721_MOCK_ADDRESS_1, ERC721_MOCK_ADDRESS_2 } from './models/erc721';
 
 const { Header, Content, Sider } = Layout;
 type MenuItem = Required<MenuProps>['items'][number];
@@ -27,12 +30,12 @@ type MenuItem = Required<MenuProps>['items'][number];
 const routes: MenuItem[] = [
   {
     key: String(1),
-    icon: <UserOutlined />,
+    icon:  <CreditCardOutlined />,
     label: <Link to="create-trades">Add Trade</Link>,
   },
   {
     key: String(2),
-    icon: <VideoCameraOutlined />,
+    icon: <ShoppingCartOutlined />,
     label: <Link to="show-trades">Show Trades</Link>,
   },
   {
@@ -40,6 +43,12 @@ const routes: MenuItem[] = [
     icon: <UploadOutlined />,
     label: <Link to="dispenser">Dispensers</Link>,
   },
+  {
+    key: String(4),
+    icon: <LogoutOutlined />,
+    label: <Link to="withdraw">Withdraw Trades</Link>,
+  },
+  
 ]
 
 function App() {
@@ -137,7 +146,7 @@ function App() {
           </Header>
           <Content style={{ margin: '16px 16px 0' }}>
 
-              <Card>
+              <>
             { (address && !isConnecting && !isDisconnected)? 
             <>
             <TradeMatchEvent api={api} />
@@ -145,16 +154,16 @@ function App() {
               <Outlet />
             </>: <RequireConnection />
             }
-            </Card>
+            </>
           </Content>
           <Footer style={{ textAlign: 'center' }}>
             <ul>
-              <li>Escrow : 0x6ec034FaBccb5AF17b5eC2460bf36A39D797425c</li>
-              <li>ERC20 1: 0x4De78D5cee888c581cbaeB41Da6813bfeB95f21A</li>
-              <li>ERC20 2: 0x96E7Cc0a9f026B2Fbf9a2B2e0e57C66F1aebADD7</li>
-              <li>Nft 1: 0x233F7515005271FB96DBd2112B60160bA03fc4Ec</li>
-              <li>Nft 1: 0x43a81C362ac267f053E9687FFCfcb22049636184</li>
-              <li>Me     : 0x62882C892c580a109a51C71a7D644C42f63F5c26</li>
+              <li>Escrow : {ESCROW_ADDRESS}</li>
+              <li>ERC20 A: {ERC20_MOCK_ADDRESS_A}</li>
+              <li>ERC20 B: {ERC20_MOCK_ADDRESS_B}</li>
+              <li>Nft 1:   {ERC721_MOCK_ADDRESS_1}</li>
+              <li>Nft 2: {ERC721_MOCK_ADDRESS_2}</li>
+              <li>Me : {address}</li>
             </ul>
             ©2023
           </Footer>
