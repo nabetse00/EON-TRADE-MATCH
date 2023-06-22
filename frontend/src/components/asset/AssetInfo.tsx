@@ -1,5 +1,5 @@
 import { List } from "antd";
-import { AssetStruct, AssetTypes } from "../models/assets";
+import { AssetStruct, AssetTypes } from "../../models/assets";
 import { useEffect, useState } from "react";
 
 

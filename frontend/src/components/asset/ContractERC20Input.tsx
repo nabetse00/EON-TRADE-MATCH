@@ -1,6 +1,6 @@
 import { Input } from "antd";
 import { AssetStruct } from "../../models/assets";
-import { fetchErc20Balance } from "../ContractFunctions";
+import { fetchErc20Balance } from "../../utils/ContractFunctions";
 import { useState } from "react";
 
 export default function ContractERC20Input(

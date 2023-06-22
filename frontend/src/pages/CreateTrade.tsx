@@ -10,7 +10,7 @@ import { formatEther, parseEther } from "viem";
 import NFTTokensInput from "../components/asset/NftsAmountInput";
 import PriceComponent from "../components/asset/PriceComponent";
 import NftAssetNumberInput from "../components/asset/NftAssetNumberInput";
-import { approveEscrowERC20, approveEscrowERC721, checkApprovedRC721, createTrade, getEscrowTokenAllowance } from "../components/ContractFunctions";
+import { approveEscrowERC20, approveEscrowERC721, checkApprovedRC721, createTrade, getEscrowTokenAllowance } from "../utils/ContractFunctions";
 import { ArrowDownOutlined, DoubleRightOutlined, DownSquareOutlined } from "@ant-design/icons";
 
 export default function CreateTrade() {

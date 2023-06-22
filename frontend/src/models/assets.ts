@@ -13,3 +13,5 @@ export type AssetStruct = {
     amount: string;
     tokekenIds: bigint[];
 };
+
+export const PRICE_DECIMALS = 4 

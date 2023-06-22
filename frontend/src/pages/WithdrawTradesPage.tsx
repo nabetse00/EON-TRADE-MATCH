@@ -1,6 +1,6 @@
 import { Alert, Button, Input, InputRef, Space, Spin, Table, Tag, Typography } from "antd";
 import { ColumnsType } from "antd/es/table";
-import { useAccount, useBlockNumber, useContractRead, usePublicClient, useWalletClient } from "wagmi";
+import { useAccount, useBlockNumber, useContractRead, usePublicClient} from "wagmi";
 import { AssetContract, ESCROW_ABI, ESCROW_ADDRESS, Trade } from "../models/escrow";
 import { useEffect, useRef, useState } from "react";
 import { Block, formatEther } from "viem";

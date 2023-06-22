@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { erc721ABI } from "wagmi";
 import { readContract } from '@wagmi/core'
-import RenderNFT from "../RenderNFT";
+import RenderNFT from "./RenderNFT";
 import Transfer, { TransferDirection } from "antd/es/transfer";
 import { AssetStruct } from "../../models/assets";
 
@@ -12,8 +12,6 @@ interface RecordType {
     tokenId: bigint;
     chosen: boolean;
 }
-
-
 
 export default function NFTTokensInput(props: {
     address: string,

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { AssetContract, ESCROW_ABI, ESCROW_ADDRESS, Trade } from "../../models/escrow";
 import { useContractRead } from "wagmi";
-import { AssetStruct, AssetTypes } from "../../models/assets";
+import { AssetStruct, AssetTypes, PRICE_DECIMALS } from "../../models/assets";
 import { Alert } from "antd";
 
 
@@ -21,8 +21,8 @@ export default function PriceComponent(props: { assetFrom: AssetStruct, assetTo:
         },
     })
 
-    function adaptAmount(asset: AssetContract){
-        if(asset.assetType == AssetTypes.ERC721_NFT){
+    function adaptAmount(asset: AssetContract) {
+        if (asset.assetType == AssetTypes.ERC721_NFT) {
             return asset.amount * DECIMALS
         }
 
@@ -66,24 +66,40 @@ export default function PriceComponent(props: { assetFrom: AssetStruct, assetTo:
         setPricesList(pList)
     }
 
-    function parsePrice(p: bigint) {
+    function computePrice(p: bigint): number {
         const val = Number(p) / Number(DECIMALS)
         return val
     }
+    function formatPrice(p: number): string {
+        return p.toFixed(PRICE_DECIMALS)
+    }
 
-    function getMean() {
+    function getMean(): number {
         const sum = pricesList.reduce((t, v) => t + v, 0n)
-        return parsePrice(sum) / pricesList.length
+        const mean = sum / BigInt(pricesList.length)
+        return computePrice(mean)
     }
 
-    function getMin() {
+    function formatMean(): string {
+        return formatPrice(getMean());
+    }
+
+    function getMin(): number {
         const min = pricesList.reduce((min, p) => p < min ? p : min, pricesList[0]);
-        return parsePrice(min)
+        return computePrice(min)
     }
 
-    function getMax() {
+    function formatMin(): string {
+        return formatPrice(getMin());
+    }
+
+    function getMax(): number {
         const max = pricesList.reduce((max, p) => p > max ? p : max, pricesList[0]);
-        return parsePrice(max)
+        return computePrice(max)
+    }
+
+    function formatMax(): string {
+        return formatPrice(getMax());
     }
 
     function formatUnits(asset: AssetStruct) {
@@ -125,9 +141,9 @@ export default function PriceComponent(props: { assetFrom: AssetStruct, assetTo:
             message="Sugested Prices from current trades:"
             description={pricesList.length > 0 ?
                 <ul>
-                    <li>Avaiable mininum price: {getMin()} {priceUnit()} enter ~ {getMin()*Number(props.assetFrom.amount)} </li>
-                    <li>Available maximun price: {getMax()} {priceUnit()} enter ~ {getMax()*Number(props.assetFrom.amount)} </li>
-                    <li>mean price: {getMean()}   {priceUnit()} enter ~ {getMean()*Number(props.assetFrom.amount)}</li>
+                    <li>Avaiable mininum price: {formatMin()} {priceUnit()} enter ~ {getMin() * Number(props.assetFrom.amount)} </li>
+                    <li>Available maximun price: {formatMax()} {priceUnit()} enter ~ {getMax() * Number(props.assetFrom.amount)} </li>
+                    <li>mean price: {formatMean()}   {priceUnit()} enter ~ {getMean() * Number(props.assetFrom.amount)}</li>
                 </ul> : "No data available"}
             type="info"
             showIcon

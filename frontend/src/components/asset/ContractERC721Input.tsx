@@ -1,6 +1,6 @@
 import { Input } from "antd";
 import { AssetStruct } from "../../models/assets";
-import { fetchErc721Balance } from "../ContractFunctions";
+import { fetchErc721Balance } from "../../utils/ContractFunctions";
 import { useState } from "react";
 
 export default function ContractERC721Input(

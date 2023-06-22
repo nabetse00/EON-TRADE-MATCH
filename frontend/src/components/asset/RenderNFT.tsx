@@ -1,7 +1,7 @@
 import { Image, Popover, Spin } from "antd";
 import { useEffect, useState } from "react";
 import { erc721ABI, useContractRead } from "wagmi";
-import { TokenUri } from "../models/erc721";
+import { TokenUri } from "../../models/erc721";
 
 export default function RenderNFT(props: { tokenId: bigint, nftAddress: `0x${string}`, added: boolean }) {
     const { data } = useContractRead({
