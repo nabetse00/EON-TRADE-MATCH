@@ -43,3 +43,8 @@
 }
 
 */
+@font-face {
+  font-family: "Neuro";   /*Can be any text*/
+  src: local("NeuropoliticalRg-Regular"),
+    url("./assets/neuropolitical\ rg.otf") format("opentype");
+}

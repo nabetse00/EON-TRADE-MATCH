@@ -4,9 +4,10 @@ import './App.css'
 import { useMediaQuery } from 'react-responsive';
 import { useState } from 'react';
 import { geekblue } from '@ant-design/colors';
+import logo from "./assets/eon-escrow-logo.png"
 
 
-import { CreditCardOutlined, LogoutOutlined, MenuFoldOutlined, MenuUnfoldOutlined, ShoppingCartOutlined, UploadOutlined } from '@ant-design/icons';
+import { CreditCardOutlined, HomeOutlined, LogoutOutlined, MenuFoldOutlined, MenuUnfoldOutlined, ShoppingCartOutlined, UploadOutlined } from '@ant-design/icons';
 import { Button, Col, Layout, Menu, Row, Space, Switch } from 'antd';
 
 
@@ -28,6 +29,11 @@ const { Header, Content, Sider } = Layout;
 type MenuItem = Required<MenuProps>['items'][number];
 
 const routes: MenuItem[] = [
+  {
+    key: String(0),
+    icon: <HomeOutlined />,
+    label: <Link to="">Home</Link>,
+  },
   {
     key: String(1),
     icon: <CreditCardOutlined />,
@@ -104,11 +110,10 @@ function App() {
           collapsed={collapsed}
 
         >
-          <div className="demo-logo-vertical" />
           <Menu
             theme="dark"
             mode="inline"
-            defaultSelectedKeys={['4']}
+            defaultSelectedKeys={['0']}
             items={routes}
           />
           <Space direction="vertical" align='center' style={{ display: 'flex' }}>
@@ -124,7 +129,7 @@ function App() {
         <Layout>
           <Header style={{ padding: 0, paddingTop: "14px", paddingBottom: "14px", height: "auto", background: "transparent" }}>
             <Row align={"middle"} justify={"center"}>
-              <Col flex="auto">
+              <Col  span={6}>
                 <Button
                   type="text"
                   icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
@@ -135,6 +140,13 @@ function App() {
                     height: 64,
                   }}
                 />
+              </Col>
+              <Col flex={"auto"}>
+                <img src={logo} alt="logo" height={"40px"}/>
+                <span style={{fontFamily:'Neuro', fontSize:'1.5em'}}>
+                  EonTradeMatch
+                  </span>
+                  
               </Col>
 
               <Col flex={"none"} style={{ marginRight: "1rem" }}>

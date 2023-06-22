@@ -383,7 +383,7 @@ export default function WithdrawTradesPage() {
                 <Table key={"trades"} columns={columnsTrades} dataSource={tradesData} pagination={{ defaultPageSize: 5 }} />
             }
 
-            <Button type="primary" onClick={handleWithdraw} danger>
+            <Button type="primary" onClick={handleWithdraw}  disabled={trades?.length == 0}danger>
                 Withdraw your trades
             </Button>
             {isLoading && <div>Check Wallet</div>}

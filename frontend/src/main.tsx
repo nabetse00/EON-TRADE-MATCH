@@ -17,6 +17,7 @@ import ShowTrades from './pages/ShowTrades.tsx';
 import CreateTrade from './pages/CreateTrade.tsx';
 import Dispenser from './pages/DispenserPage.tsx';
 import WithdrawTradesPage from './pages/WithdrawTradesPage.tsx';
+import HomePage from './pages/HomePage.tsx';
 
 export const eonGobi = {
   id: 1663,
@@ -58,6 +59,9 @@ const router = createBrowserRouter([
     element: <App />,
     errorElement: <ErrorPage />,
     children: [{
+      path:'/',
+      element: <HomePage />,
+    },{
       path: "/create-trades",
       element: <CreateTrade />,
     },

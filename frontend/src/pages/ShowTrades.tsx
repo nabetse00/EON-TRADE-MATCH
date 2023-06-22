@@ -336,7 +336,7 @@ export default function ShowTrades() {
       {isLoadingTrade && <Spin key={"spin"} />}
       {isErrorTrade && <Alert key={"alert"} message={"Error reitring trade data"} />}
       {trades && !isLoadingTrade && !isErrorTrade &&
-        <Table key={"trades"} columns={columnsTrades} dataSource={tradesData} pagination={{ defaultPageSize: 5 }} />
+        <Table key={"trades"} columns={columnsTrades} dataSource={tradesData} pagination={{ defaultPageSize: 10 }} />
       }
     </>
   );
