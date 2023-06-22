@@ -364,7 +364,7 @@ export default function WithdrawTradesPage() {
         functionName: 'withdrawTrades',
         args: [address!]
     })
-    const { data: data, isLoading: isLoading, isSuccess: isSuccess, write: write } = useContractWrite(configWithdraw)
+    const { data: data, isLoading: isLoading, isSuccess: isSuccess, isError,  write: write } = useContractWrite(configWithdraw)
 
     const handleWithdraw = () => {
         console.log(`Withdraw trades for ${address}`)
@@ -387,7 +387,8 @@ export default function WithdrawTradesPage() {
                 Withdraw your trades
             </Button>
             {isLoading && <div>Check Wallet</div>}
-            {isSuccess && <div>Transaction: {JSON.stringify(data)}</div>}
+            {isSuccess && <div>Transaction success: {data?.hash}</div>}
+            {isError && <div>Transaction failed! {data?.hash}</div>}
         </>
     );
 }

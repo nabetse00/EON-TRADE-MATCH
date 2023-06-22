@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { ADDRESS_ZERO, AssetStruct, AssetTypes } from "../models/assets";
-import { Button, Card, Col, Divider, Form, InputNumber, Modal, Radio, RadioChangeEvent, Row, Segmented, Space, Spin, Switch, Timeline, TimelineItemProps } from "antd";
+import { Button, Card, Col, Form, InputNumber, Modal, Radio, RadioChangeEvent, Row, Segmented, Space, Spin, Switch, Timeline, TimelineItemProps } from "antd";
 import { useAccount, useBalance } from "wagmi";
 import RequireConnection from "../components/RequireConnection";
 import NativeAmountAssetInput from "../components/asset/NativeAssetInput";
@@ -11,7 +11,7 @@ import NFTTokensInput from "../components/asset/NftsAmountInput";
 import PriceComponent from "../components/asset/PriceComponent";
 import NftAssetNumberInput from "../components/asset/NftAssetNumberInput";
 import { approveEscrowERC20, approveEscrowERC721, checkApprovedRC721, createTrade, getEscrowTokenAllowance } from "../utils/ContractFunctions";
-import { ArrowDownOutlined, DoubleRightOutlined, DownSquareOutlined } from "@ant-design/icons";
+import { ArrowDownOutlined, DoubleRightOutlined } from "@ant-design/icons";
 
 export default function CreateTrade() {
 

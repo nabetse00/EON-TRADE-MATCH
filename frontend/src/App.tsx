@@ -6,8 +6,8 @@ import { useState } from 'react';
 import { geekblue } from '@ant-design/colors';
 
 
-import { CreditCardOutlined, LogoutOutlined, MenuFoldOutlined, MenuUnfoldOutlined, ShoppingCartOutlined, UploadOutlined, UserOutlined, VideoCameraOutlined } from '@ant-design/icons';
-import { Button, Card, Col, Layout, Menu, Row, Space, Switch } from 'antd';
+import { CreditCardOutlined, LogoutOutlined, MenuFoldOutlined, MenuUnfoldOutlined, ShoppingCartOutlined, UploadOutlined } from '@ant-design/icons';
+import { Button, Col, Layout, Menu, Row, Space, Switch } from 'antd';
 
 
 import { Footer } from 'antd/es/layout/layout';
@@ -30,7 +30,7 @@ type MenuItem = Required<MenuProps>['items'][number];
 const routes: MenuItem[] = [
   {
     key: String(1),
-    icon:  <CreditCardOutlined />,
+    icon: <CreditCardOutlined />,
     label: <Link to="create-trades">Add Trade</Link>,
   },
   {
@@ -48,7 +48,7 @@ const routes: MenuItem[] = [
     icon: <LogoutOutlined />,
     label: <Link to="withdraw">Withdraw Trades</Link>,
   },
-  
+
 ]
 
 function App() {
@@ -71,7 +71,7 @@ function App() {
 
   const [isDark, setIsDark] = useState(systemPrefersDark);
   const [api, contextHolder] = notification.useNotification();
-  const {address, isDisconnected, isConnecting} = useAccount()
+  const { address, isDisconnected, isConnecting } = useAccount()
 
   return (
 
@@ -84,7 +84,7 @@ function App() {
       }}
     >
       <Layout style={{ minHeight: "100vh" }}>
-      {contextHolder}
+        {contextHolder}
         <Sider
           breakpoint="lg"
           collapsedWidth="0"
@@ -146,14 +146,14 @@ function App() {
           </Header>
           <Content style={{ margin: '16px 16px 0' }}>
 
-              <>
-            { (address && !isConnecting && !isDisconnected)? 
             <>
-            <TradeMatchEvent api={api} />
-            <CreateTradeEvent api={api} address={address} />
-              <Outlet />
-            </>: <RequireConnection />
-            }
+              {(address && !isConnecting && !isDisconnected) ?
+                <>
+                  <TradeMatchEvent api={api} />
+                  <CreateTradeEvent api={api} address={address} />
+                  <Outlet />
+                </> : <RequireConnection />
+              }
             </>
           </Content>
           <Footer style={{ textAlign: 'center' }}>
