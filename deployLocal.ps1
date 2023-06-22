@@ -1,12 +1,7 @@
 echo "==========================="
-npx hardhat run .\scripts\deployERC20_1.ts --network localhost
+npx hardhat run .\scripts\deployLocalTests.ts  --network localhost
 echo "==========================="
-npx hardhat run .\scripts\deployEscrow.ts --network localhost
-echo "==========================="
-npx hardhat run .\scripts\deployERC20_2.ts --network localhost
-echo "==========================="
-npx hardhat run .\scripts\deployERC721.ts --network localhost
-echo "==========================="
+# run front end 
 cd ./frontend
 npm run dev
 

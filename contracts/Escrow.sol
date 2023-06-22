@@ -15,7 +15,7 @@ contract Escrow is ERC721Holder {
     using SafeMath for uint256;
 
     // Constants
-    uint256 internal constant DECIMALS = 1e18;
+    uint256 internal constant DECIMALS = 1e8;
 
     // Type declarations
     enum AssetTypes {
