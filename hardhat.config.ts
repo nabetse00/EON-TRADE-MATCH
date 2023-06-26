@@ -35,10 +35,10 @@ const config: HardhatUserConfig = {
       from: ADDRESS,
       accounts: { mnemonic: `${MNEMONIC}` },
       blockGasLimit: 30000000,
-      mining: {
-        auto: false,
-        interval: [3000, 6000]
-      },
+      // mining: {
+      //   auto: false,
+      //   interval: [3000, 6000]
+      // },
       forking: {
         url: `https://eth-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
         blockNumber: 3199644

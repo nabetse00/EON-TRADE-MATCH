@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.9;
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
@@ -12,10 +12,10 @@ import "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
  */
 contract Escrow is ERC721Holder {
     // libraries
-    using SafeMath for uint256;
+    using Math for uint256;
 
     // Constants
-    uint256 internal constant DECIMALS = 1e8;
+    uint256 internal constant DECIMALS = 1e18;
 
     // Type declarations
     enum AssetTypes {
@@ -52,6 +52,7 @@ contract Escrow is ERC721Holder {
     // mapping(address => uint256[]) sellersTrades;
     mapping(uint256 => Trade) public trades;
     mapping(uint256 => uint256[]) public nftData; // maps AssetId to nftIds
+    mapping(uint256 => uint256[2]) public virtualTradeData;
     uint256 public lastTradeIndex;
     uint256 public lastAssetIndex;
 
@@ -266,7 +267,7 @@ contract Escrow is ERC721Holder {
 
         if (t == AssetTypes.NATIVE_ZEN) {
             require(
-                msg.value == fromAsset_.amount.add(flat_fee),
+                msg.value == (fromAsset_.amount + flat_fee),
                 "Not enought ZEN sent"
             );
         }
@@ -293,6 +294,7 @@ contract Escrow is ERC721Holder {
 
         emit TradeCreated(ta);
         matchTrade(ta);
+        cleanTrades();
     }
 
     /**
@@ -309,6 +311,10 @@ contract Escrow is ERC721Holder {
         //loop
         for (uint256 i = tradesIds.length; i > 0; i--) {
             Trade storage b = trades[tradesIds[i - 1]];
+            if (b.owner == address(0)) {
+                // marked to be removed do nothing
+                continue;
+            }
             if (!(equalAssets(a.fromAsset, b.toAsset))) {
                 continue;
             }
@@ -322,8 +328,14 @@ contract Escrow is ERC721Holder {
             uint256 aToAmount = a.toAsset.amount;
             uint256 bToAmount = b.toAsset.amount;
 
-            uint256 p1 = _amount(a.toAsset).mul(DECIMALS).div(_amount(a.fromAsset));
-            uint256 p2 = _amount(b.fromAsset).mul(DECIMALS).div(_amount(b.toAsset));
+            uint256 p1 = _amount(a.toAsset).mulDiv(
+                DECIMALS,
+                _amount(a.fromAsset)
+            );
+            uint256 p2 = _amount(b.fromAsset).mulDiv(
+                DECIMALS,
+                _amount(b.toAsset)
+            );
 
             if (p1 != p2) {
                 continue;
@@ -331,48 +343,302 @@ contract Escrow is ERC721Holder {
 
             if (aFromAmount == bToAmount) {
                 // complete amount
-                transferAssetTo(b.fromAsset, a.owner, bFromAmount);
-                transferAssetTo(a.fromAsset, b.owner, aFromAmount);
+                executeTrades(a, b, bFromAmount, aFromAmount);
                 emit TradesMatched(a, b);
                 // remove b from trades
-                delete trades[b.tradeId]; // rem this is b !
-                tradesIds[i - 1] = tradesIds[tradesIds.length - 1];
-                tradesIds.pop();
-                //delete a only in mapping
-                delete trades[a.tradeId];
-                emit TradeRemoved(a);
-                emit TradeRemoved(b);
+                updateLinkedTrades(a);
+                updateLinkedTrades(b);
+                removeTrade(b, i - 1);
+                removeTrade(a);
                 return;
             }
             if (aFromAmount > bToAmount && a.allowPartial) {
                 //partial trade amount
-                transferAssetTo(b.fromAsset, a.owner, bFromAmount);
-                transferAssetTo(a.fromAsset, b.owner, bToAmount);
+                executeTrades(a, b, bFromAmount, bToAmount);
                 // update a asset to amount
                 a.toAsset.amount -= bFromAmount;
                 emit TradesPartialyMatched(a, b);
-                // remove b from trades
-                delete trades[b.tradeId]; // rem this is b !
-                tradesIds[i - 1] = tradesIds[tradesIds.length - 1];
-                tradesIds.pop();
-                emit TradeRemoved(b);
+                updateLinkedTrades(a);
+                updateLinkedTrades(b);
+                removeTrade(b, i - 1);
                 continue;
             }
             if (aFromAmount < bToAmount && b.allowPartial) {
                 //partial trade amount a fullfiled so exit
-                transferAssetTo(b.fromAsset, a.owner, aToAmount);
-                transferAssetTo(a.fromAsset, b.owner, aFromAmount);
+                executeTrades(a, b, aToAmount, aFromAmount);
                 // update b asset to amount
                 b.toAsset.amount -= aFromAmount;
                 emit TradesPartialyMatched(b, a);
-                //delete a only in mapping
-                delete trades[a.tradeId];
-                // b updated from transfer
-                emit TradeRemoved(a);
+                updateLinkedTrades(a);
+                updateLinkedTrades(b);
+                removeTrade(a);
                 return;
             }
         }
+
+        addVirtualTrades(a);
         tradesIds.push(a.tradeId);
+    }
+
+    function executeVirtual(Trade storage t, uint256 amountT) internal {
+        uint256[2] memory td = virtualTradeData[t.tradeId];
+        Trade storage t1 = trades[td[0]];
+        Trade storage t2 = trades[td[1]];
+
+        // uint256 t1ToAmount = t1.toAsset.amount;
+        // uint256 t2ToAmount = t2.toAsset.amount;
+
+        uint256 burnT2From = _amount(t2.fromAsset).mulDiv(
+            amountT,
+            _amount(t2.toAsset)
+        );
+
+        uint256 burnT1From = _amount(t1.toAsset).mulDiv(
+            burnT2From,
+            _amount(t1.fromAsset)
+        );
+
+        if (t2.owner != address(this)) {
+            transferAssetTo(t2.toAsset, t2.owner, amountT);
+            // update from asset
+            t2.fromAsset.amount -= burnT2From;
+        } else {
+            executeVirtual(t2, amountT);
+        }
+
+        if (t1.owner != address(this)) {
+            transferAssetTo(t1.toAsset, t1.owner, burnT2From);
+            // update from asset
+            t1.fromAsset.amount -= burnT1From;
+        } else {
+            executeVirtual(t1, amountT);
+        }
+
+        // update virtual trade
+        t.toAsset.amount -= amountT;
+        // alreay done !
+        // t.fromAsset.amount -= burnT1From;
+
+        // mark to delete if needed
+        if (t.toAsset.amount == 0 || t.fromAsset.amount == 0) {
+            // mark to remove
+            t.owner = address(0);
+        }
+        if (t1.toAsset.amount == 0 || t1.fromAsset.amount == 0) {
+            // mark to remove
+            t1.owner = address(0);
+        }
+        if (t2.toAsset.amount == 0 || t2.fromAsset.amount == 0) {
+            // mark to remove
+            t2.owner = address(0);
+        }
+    }
+
+    function executeTrades(
+        Trade storage a,
+        Trade storage b,
+        uint256 amountA,
+        uint256 amountB
+    ) internal {
+        if (a.owner != address(this)) {
+            transferAssetTo(b.fromAsset, a.owner, amountA);
+        } else {
+            executeVirtual(a, amountA);
+        }
+        if (b.owner != address(this)) {
+            transferAssetTo(a.fromAsset, b.owner, amountB);
+        } else {
+            executeVirtual(b, amountB);
+        }
+    }
+
+    function addVirtualTrades(Trade storage a) internal {
+        for (uint256 i = tradesIds.length; i > 0; i--) {
+            Trade storage b = trades[tradesIds[i - 1]];
+            if (
+                !(equalAssets(a.fromAsset, b.toAsset)) &&
+                equalAssets(a.toAsset, b.fromAsset)
+            ) {
+                createVirtualTrade(a, b);
+                continue;
+            }
+            if (
+                !(equalAssets(a.toAsset, b.fromAsset)) &&
+                equalAssets(a.fromAsset, b.toAsset)
+            ) {
+                createVirtualTrade(b, a);
+                continue;
+            }
+        }
+    }
+
+    function cleanTrades() internal {
+        for (uint256 i = tradesIds.length; i > 0; i--) {
+            Trade storage t = trades[tradesIds[i - 1]];
+            if (t.owner == address(0)) {
+                removeTrade(t, i - 1);
+            }
+        }
+
+        bool loop = false;
+        do {
+            loop = false;
+            for (uint256 i = tradesIds.length; i > 0; i--) {
+                Trade storage t = trades[tradesIds[i - 1]];
+                if (t.owner == address(this)) {
+                    uint256[2] memory tv = virtualTradeData[t.tradeId];
+                    Trade storage t1 = trades[tv[0]];
+                    Trade storage t2 = trades[tv[1]];
+                    if ((t1.owner == address(0)) || (t2.owner == address(0))) {
+                        loop = true;
+                        removeTrade(t, i - 1);
+                    }
+                }
+            }
+        } while (loop);
+    }
+
+    function updateLinkedTrades(Trade storage t) internal {
+        if (t.owner == address(0)) {
+            // marked to be deleted nothing to do
+            return;
+        }
+
+        for (uint256 i = tradesIds.length; i > 0; i--) {
+            Trade storage b = trades[tradesIds[i - 1]];
+            if (b.owner == address(this)) {
+                // trade data
+                uint256[2] memory td;
+                td = virtualTradeData[b.tradeId];
+                if ((td[0] == t.tradeId) || (td[1] == t.tradeId)) {
+                    updateVirtualTrade(b);
+                }
+            }
+        }
+    }
+
+    function updateVirtualTrade(Trade storage t) internal {
+        if (t.owner == address(0)) {
+            // marked to be deleted nothing to do
+            return;
+        }
+
+        // trade data
+        uint256[2] memory td;
+        td = virtualTradeData[t.tradeId];
+        require((td[0] != 0) || (td[1] != 0), "invalid virtual trade data");
+        Trade storage a = trades[td[0]];
+        Trade storage b = trades[td[1]];
+
+        //uint256 aFromAmount = a.fromAsset.amount;
+        uint256 bFromAmount = b.fromAsset.amount;
+
+        uint256 aToAmount = a.toAsset.amount;
+        // uint256 bToAmount = b.toAsset.amount;
+
+        if (bFromAmount == aToAmount) {
+            t.fromAsset.amount = a.fromAsset.amount;
+            t.toAsset.amount = b.toAsset.amount;
+        }
+
+        if ((bFromAmount > aToAmount) && b.allowPartial) {
+            t.fromAsset.amount = a.fromAsset.amount;
+            t.toAsset.amount = _amount(b.toAsset).mulDiv(
+                aToAmount,
+                _amount(b.fromAsset)
+            );
+        }
+
+        if ((bFromAmount < aToAmount) && a.allowPartial) {
+            t.toAsset.amount = b.toAsset.amount;
+            t.fromAsset.amount = _amount(a.fromAsset).mulDiv(
+                bFromAmount,
+                _amount(a.toAsset)
+            );
+        }
+
+        if ((t.fromAsset.amount == 0) || (t.toAsset.amount == 0)) {
+            // mark to delete
+            t.owner = address(0);
+        }
+    }
+
+    function createVirtualTrade(Trade storage a, Trade storage b) internal {
+        if (
+            (a.toAsset.assetType == AssetTypes.ERC721_NFT) ||
+            (a.fromAsset.assetType == AssetTypes.ERC721_NFT)
+        ) {
+            return;
+        }
+        if (
+            (b.toAsset.assetType == AssetTypes.ERC721_NFT) ||
+            (b.fromAsset.assetType == AssetTypes.ERC721_NFT)
+        ) {
+            return;
+        }
+        uint256 tradeId_ = _getTradeIdIndex();
+        Trade storage t = trades[tradeId_];
+        t.tradeId = tradeId_;
+        t.owner = address(this);
+        t.fromAsset = a.fromAsset;
+        t.toAsset = b.toAsset;
+        t.allowPartial = true;
+        t.expireTime = 0;
+
+        // operate amounts
+
+        //uint256 aFromAmount = a.fromAsset.amount;
+        uint256 bFromAmount = b.fromAsset.amount;
+
+        uint256 aToAmount = a.toAsset.amount;
+        // uint256 bToAmount = b.toAsset.amount;
+
+        if (bFromAmount == aToAmount) {
+            t.fromAsset.amount = a.fromAsset.amount;
+            t.toAsset.amount = b.toAsset.amount;
+        }
+
+        if ((bFromAmount > aToAmount) && b.allowPartial) {
+            t.fromAsset.amount = a.fromAsset.amount;
+            t.toAsset.amount = _amount(b.toAsset).mulDiv(
+                aToAmount,
+                _amount(b.fromAsset)
+            );
+        }
+
+        if ((bFromAmount < aToAmount) && a.allowPartial) {
+            t.toAsset.amount = b.toAsset.amount;
+            t.fromAsset.amount = _amount(a.fromAsset).mulDiv(
+                bFromAmount,
+                _amount(a.toAsset)
+            );
+        }
+
+        // trade data
+        uint256[2] memory td = [a.tradeId, b.tradeId];
+        virtualTradeData[t.tradeId] = td;
+        // push to array
+        tradesIds.push(t.tradeId);
+        emit TradeCreated(t);
+    }
+
+    function removeTrade(Trade storage t) internal {
+        emit TradeRemoved(t);
+        // mark to remove
+        t.owner = address(0);
+        // remove from mapping
+        delete trades[t.tradeId];
+    }
+
+    function removeTrade(Trade storage t, uint256 index) internal {
+        emit TradeRemoved(t);
+        // mark to remove
+        t.owner = address(0);
+        // remove from mapping
+        delete trades[t.tradeId];
+        // remove from array
+        tradesIds[index] = tradesIds[tradesIds.length - 1];
+        tradesIds.pop();
     }
 
     function transferAssetTo(
@@ -380,7 +646,6 @@ contract Escrow is ERC721Holder {
         address to,
         uint256 amount
     ) internal {
-        // require(amount <= a.amount, "Amount to transfer exeeds asset amount");
         AssetTypes t = a.assetType;
         address assetAddress_ = a.assetAddress;
         bool result = false;
@@ -474,8 +739,8 @@ contract Escrow is ERC721Holder {
         return lastAssetIndex++;
     }
 
-    function _amount(Asset memory asset) internal pure returns(uint256){
-        if(asset.assetType == AssetTypes.ERC721_NFT){
+    function _amount(Asset memory asset) internal pure returns (uint256) {
+        if (asset.assetType == AssetTypes.ERC721_NFT) {
             return (asset.amount * DECIMALS);
         }
         return asset.amount;

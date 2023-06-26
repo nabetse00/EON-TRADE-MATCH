@@ -1,6 +1,6 @@
 # Eon Trade Match
 
-Welcome to EonTrade, the premier platform for automated trades between users without the need for a direct counterparty. Our innovative system matches users based on their desired assets, enabling seamless and secure transactions.
+Welcome to Eon TradeMatch, the premier platform for automated trades between users without the need for a direct counterparty. Our innovative system matches users based on their desired assets, enabling seamless and secure transactions.
 
 With EonTradeMatch, you have the power to take control of your investments and unlock the potential of your assets. Say goodbye to the limitations of traditional trading methods and embrace the convenience and flexibility of automated trades.
 

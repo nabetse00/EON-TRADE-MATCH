@@ -4,7 +4,6 @@ import { ethers } from "hardhat";
 import { FLAT_FEES, UNLOCK_TIME, deployEscrowFixture } from "./utils/fixtureEscrow"
 import { createERC20, createERC721, tokenERC20SetUp, tokenERC721SetUp } from "./utils/utilsEscrow";
 import { Escrow } from "../typechain-types/contracts/Escrow";
-import { Bytecode } from "hardhat/internal/hardhat-network/stack-traces/model";
 
 enum AssetTypes {
     NATIVE_ZEN,
@@ -238,7 +237,8 @@ describe("Escrow Contract", function () {
             await expect(await fromTokenERC20.balanceOf(escrow.address)).to.be.equal(0)
             await expect(await toTokenERC20.balanceOf(escrow.address)).to.be.equal(erc20_amount)
             await expect(await escrow.availableFees()).to.equal(FLAT_FEES.mul(2))
-            await expect((await escrow.getTrades()).length).to.be.equal(2)
+            // two trades + 1 virtual 
+            await expect((await escrow.getTrades()).length).to.be.equal(3)
         });
 
         it("Create correctly Zen => tokenA and tokenA => tokenB trades", async function () {
@@ -363,7 +363,8 @@ describe("Escrow Contract", function () {
             await expect(await fromTokenERC20.balanceOf(escrow.address)).to.be.equal(erc20_amount)
             await expect(await toTokenERC20.balanceOf(escrow.address)).to.be.equal(0)
             await expect(await escrow.availableFees()).to.equal(FLAT_FEES.mul(2))
-            await expect((await escrow.getTrades()).length).to.be.equal(2)
+            // two trades + 1 virtual 
+            await expect((await escrow.getTrades()).length).to.be.equal(3)
         });
 
         it("Create and not match Zen => tokenA and tokenA => zen trades on different price", async function () {
@@ -1469,6 +1470,428 @@ describe("Escrow Contract", function () {
 
     });
 
+    describe("Trade composition", function () {
+
+        it("Create composed trades execute changes to `virtual` trades", async function () {
+            const { escrow, deployer, buyer, seller } = await loadFixture(deployEscrowFixture);
+            const duration = 100
+
+            const zen_amount1 = ethers.utils.parseEther("1")
+            const zen_amount2 = ethers.utils.parseEther("2")
+            const zen_amount3 = ethers.utils.parseEther("3")
+            const zen_amount4 = ethers.utils.parseEther("4")
+
+            const amountA = 1
+            const amountB = 2
+            const amountC = 3
+            const amountD = 4
+            const tokenA_amount = ethers.utils.parseEther(amountA.toString())
+            const tokenB_amount = ethers.utils.parseEther(amountB.toString())
+            const tokenC_amount = ethers.utils.parseEther(amountC.toString())
+            const tokenD_amount = ethers.utils.parseEther(amountD.toString())
+
+
+            const tokenA = await createERC20("Token A", "TKA", "10000")
+            await tokenERC20SetUp(tokenA, escrow, deployer, seller, amountA)
+
+            const tokenB = await createERC20("Token B", "TKB", "10000")
+            await tokenERC20SetUp(tokenB, escrow, deployer, seller, amountB)
+
+            const tokenC = await createERC20("Token C", "TKC", "10000")
+            await tokenERC20SetUp(tokenC, escrow, deployer, seller, amountC)
+
+            const tokenD = await createERC20("Token D", "TKD", "10000")
+            await tokenERC20SetUp(tokenD, escrow, deployer, seller, amountD)
+
+            const addrToTok = (addr: string) => {
+                switch (addr) {
+                    case ethers.constants.AddressZero:
+                        return "0xZERO"
+                        break;
+                    case tokenA.address:
+                        return "0xA"
+                        break;
+                    case tokenB.address:
+                        return "0xB"
+                        break;
+                    case tokenC.address:
+                        return "0xC"
+                        break;
+                    case tokenD.address:
+                        return "0xD"
+                        break;
+
+                    default:
+                        return "0x???"
+                        break;
+                }
+            }
+
+            let fromAsset: Escrow.AssetStruct = {
+                assetId: 0,
+                assetType: AssetTypes.NATIVE_ZEN,
+                assetAddress: ethers.constants.AddressZero,
+                amount: zen_amount1
+            };
+
+            let toAsset: Escrow.AssetStruct = {
+                assetId: 0,
+                assetType: AssetTypes.ERC20_TOKEN,
+                assetAddress: tokenA.address,
+                amount: tokenA_amount
+            };
+
+            // Zen => tokenA
+            let create = await escrow.connect(seller).createTrade(seller.address, fromAsset, [], toAsset, true, duration, { value: zen_amount1.add(FLAT_FEES) })
+            await expect(create).to.not.be.reverted
+            await expect(create).to.changeEtherBalance(seller, zen_amount1.add(FLAT_FEES).mul(-1));
+            await expect(create).to.changeEtherBalance(escrow, zen_amount1.add(FLAT_FEES));
+            let trades = await escrow.getTrades()
+            await expect(trades.length).to.be.equal(1)
+
+            // Zen => tokenB
+            fromAsset.amount = zen_amount2
+            toAsset.assetAddress = tokenB.address
+            toAsset.amount = tokenB_amount
+            create = await escrow.connect(seller).createTrade(seller.address, fromAsset, [], toAsset, true, duration, { value: zen_amount2.add(FLAT_FEES) })
+            await expect(create).to.not.be.reverted
+            await expect(create).to.changeEtherBalance(seller, zen_amount2.add(FLAT_FEES).mul(-1));
+            await expect(create).to.changeEtherBalance(escrow, zen_amount2.add(FLAT_FEES));
+            trades = await escrow.getTrades()
+            await expect(trades.length).to.be.equal(2)
+
+
+            // Zen => tokenC
+            fromAsset.amount = zen_amount3
+            toAsset.assetAddress = tokenC.address
+            toAsset.amount = tokenC_amount
+            create = await escrow.connect(seller).createTrade(seller.address, fromAsset, [], toAsset, true, duration, { value: zen_amount3.add(FLAT_FEES) })
+            await expect(create).to.not.be.reverted
+            await expect(create).to.changeEtherBalance(seller, zen_amount3.add(FLAT_FEES).mul(-1));
+            await expect(create).to.changeEtherBalance(escrow, zen_amount3.add(FLAT_FEES));
+            trades = await escrow.getTrades()
+            await expect(trades.length).to.be.equal(3)
+
+
+
+            // Zen => tokenD
+            fromAsset.amount = zen_amount4
+            toAsset.assetAddress = tokenD.address
+            toAsset.amount = tokenD_amount
+            create = await escrow.connect(seller).createTrade(seller.address, fromAsset, [], toAsset, true, duration, { value: zen_amount4.add(FLAT_FEES) })
+            await expect(create).to.not.be.reverted
+            await expect(create).to.changeEtherBalance(seller, zen_amount4.add(FLAT_FEES).mul(-1));
+            await expect(create).to.changeEtherBalance(escrow, zen_amount4.add(FLAT_FEES));
+            trades = await escrow.getTrades()
+            await expect(trades.length).to.be.equal(4)
+
+            // tokenA => zen
+            fromAsset.assetAddress = tokenA.address
+            fromAsset.amount = tokenA_amount.div(2)
+            fromAsset.assetType = AssetTypes.ERC20_TOKEN
+            toAsset.assetType = AssetTypes.NATIVE_ZEN
+            toAsset.assetAddress = ethers.constants.AddressZero
+            toAsset.amount = zen_amount1.div(2)
+            create = await escrow.connect(seller).createTrade(seller.address, fromAsset, [], toAsset, true, duration, { value: FLAT_FEES })
+            await expect(create).to.not.be.reverted
+
+            await expect(create).to.changeEtherBalance(seller, zen_amount1.div(2).sub(FLAT_FEES));
+            await expect(create).to.changeEtherBalance(escrow, FLAT_FEES.sub(zen_amount1.div(2)));
+            trades = await escrow.getTrades()
+            await expect(trades.length).to.be.equal(4)
+            // console.log("A => zen added")
+            // printTrades(escrow, addrToTok)
+
+            // tokenD => zen
+            fromAsset.assetAddress = tokenD.address
+            fromAsset.amount = tokenD_amount
+            fromAsset.assetType = AssetTypes.ERC20_TOKEN
+            toAsset.assetType = AssetTypes.NATIVE_ZEN
+            toAsset.assetAddress = ethers.constants.AddressZero
+            toAsset.amount = zen_amount4
+            create = await escrow.connect(seller).createTrade(seller.address, fromAsset, [], toAsset, true, duration, { value: FLAT_FEES })
+            await expect(create).to.not.be.reverted
+
+            // console.log("D => zen added")
+            // printTrades(escrow, addrToTok)
+
+            await expect(create).to.changeEtherBalance(seller, zen_amount4.sub(FLAT_FEES));
+            await expect(create).to.changeEtherBalance(escrow, FLAT_FEES.sub(zen_amount4));
+            trades = await escrow.getTrades()
+            await expect(trades.length).to.be.equal(3)
+
+            // tokenA => tokenD, creates a virtual trade Zen => tokenD
+            await tokenERC20SetUp(tokenA, escrow, deployer, seller, amountA)
+            fromAsset.assetAddress = tokenA.address
+            fromAsset.amount = tokenA_amount
+            fromAsset.assetType = AssetTypes.ERC20_TOKEN
+            toAsset.assetType = AssetTypes.ERC20_TOKEN
+            toAsset.assetAddress = tokenD.address
+            toAsset.amount = tokenD_amount
+            create = await escrow.connect(seller).createTrade(seller.address, fromAsset, [], toAsset, true, duration, { value: FLAT_FEES })
+            await expect(create).to.not.be.reverted
+
+            // console.log("A => D added")
+            // printTrades(escrow, addrToTok)
+
+            await expect(create).to.changeEtherBalance(seller, FLAT_FEES.mul(-1));
+            await expect(create).to.changeEtherBalance(escrow, FLAT_FEES);
+            trades = await escrow.getTrades()
+            await expect(trades.length).to.be.equal(5)
+
+            // partial D => A partial trade updates virtual
+            await tokenERC20SetUp(tokenD, escrow, deployer, seller, amountD)
+            fromAsset.assetAddress = tokenD.address
+            fromAsset.amount = tokenD_amount.mul(2).div(3).add(1)
+            // solidity v8.X rounds up on division !! hence .add(1)
+            fromAsset.assetType = AssetTypes.ERC20_TOKEN
+            toAsset.assetType = AssetTypes.ERC20_TOKEN
+            toAsset.assetAddress = tokenA.address
+            toAsset.amount = tokenA_amount.mul(2).div(3).add(1)
+            create = await escrow.connect(seller).createTrade(seller.address, fromAsset, [], toAsset, true, duration, { value: FLAT_FEES })
+            await expect(create).to.not.be.reverted
+
+            // console.log("D => A added results:")
+            // printTrades(escrow, addrToTok)
+
+            await expect(create).to.changeEtherBalance(seller, FLAT_FEES.mul(-1));
+            await expect(create).to.changeEtherBalance(escrow, FLAT_FEES);
+            trades = await escrow.getTrades()
+            await expect(trades.length).to.be.equal(5)
+
+            // partial D => Zen completes virtual and removes normals
+            await tokenERC20SetUp(tokenD, escrow, deployer, seller, amountD)
+            const bal = await tokenD.balanceOf(escrow.address);
+            fromAsset.assetAddress = tokenD.address
+            fromAsset.amount = tokenD_amount.mul(1).div(3)
+            // solidity v8.X rounds up on division !! hence here not add 1
+            fromAsset.assetType = AssetTypes.ERC20_TOKEN
+            toAsset.assetType = AssetTypes.NATIVE_ZEN
+            toAsset.assetAddress = ethers.constants.AddressZero
+            toAsset.amount = tokenA_amount.mul(1).div(3)
+            create = await escrow.connect(seller).createTrade(seller.address, fromAsset, [], toAsset, true, duration, { value: FLAT_FEES })
+            
+            //console.log("D => Zen added results:")
+            //printTrades(escrow, addrToTok)
+            
+            await expect(create).to.not.be.reverted
+            await expect(create).to.changeEtherBalance(seller, tokenA_amount.mul(1).div(3).sub(FLAT_FEES));
+            await expect(create).to.changeEtherBalance(escrow, FLAT_FEES.sub(tokenA_amount.mul(1).div(3)));
+            trades = await escrow.getTrades()
+            await expect(trades.length).to.be.equal(3)
+
+
+
+        });
+        /*
+                it("Create composed trades execute changes from internal trade", async function () {
+                    const { escrow, deployer, buyer, seller } = await loadFixture(deployEscrowFixture);
+                    const duration = 100
+        
+                    const zen_amount1 = ethers.utils.parseEther("1")
+                    const zen_amount2 = ethers.utils.parseEther("2")
+                    const zen_amount3 = ethers.utils.parseEther("3")
+                    const zen_amount4 = ethers.utils.parseEther("4")
+        
+                    const amountA = 1
+                    const amountB = 2
+                    const amountC = 3
+                    const amountD = 4
+                    const tokenA_amount = ethers.utils.parseEther(amountA.toString())
+                    const tokenB_amount = ethers.utils.parseEther(amountB.toString())
+                    const tokenC_amount = ethers.utils.parseEther(amountC.toString())
+                    const tokenD_amount = ethers.utils.parseEther(amountD.toString())
+        
+        
+                    const tokenA = await createERC20("Token A", "TKA", "10000")
+                    await tokenERC20SetUp(tokenA, escrow, deployer, seller, amountA)
+        
+                    const tokenB = await createERC20("Token B", "TKB", "10000")
+                    await tokenERC20SetUp(tokenB, escrow, deployer, seller, amountB)
+        
+                    const tokenC = await createERC20("Token C", "TKC", "10000")
+                    await tokenERC20SetUp(tokenC, escrow, deployer, seller, amountC)
+        
+                    const tokenD = await createERC20("Token D", "TKD", "10000")
+                    await tokenERC20SetUp(tokenD, escrow, deployer, seller, amountD)
+        
+                    const addrToTok = (addr: string) => {
+                        switch (addr) {
+                            case ethers.constants.AddressZero:
+                                return "0xZERO"
+                                break;
+                            case tokenA.address:
+                                return "0xA"
+                                break;
+                            case tokenB.address:
+                                return "0xB"
+                                break;
+                            case tokenC.address:
+                                return "0xC"
+                                break;
+                            case tokenD.address:
+                                return "0xD"
+                                break;
+        
+                            default:
+                                return "0x???"
+                                break;
+                        }
+                    }
+        
+                    let fromAsset: Escrow.AssetStruct = {
+                        assetId: 0,
+                        assetType: AssetTypes.NATIVE_ZEN,
+                        assetAddress: ethers.constants.AddressZero,
+                        amount: zen_amount1
+                    };
+        
+                    let toAsset: Escrow.AssetStruct = {
+                        assetId: 0,
+                        assetType: AssetTypes.ERC20_TOKEN,
+                        assetAddress: tokenA.address,
+                        amount: tokenA_amount
+                    };
+        
+                    // Zen => tokenA
+                    let create = await escrow.connect(seller).createTrade(seller.address, fromAsset, [], toAsset, true, duration, { value: zen_amount1.add(FLAT_FEES) })
+                    await expect(create).to.not.be.reverted
+                    await expect(create).to.changeEtherBalance(seller, zen_amount1.add(FLAT_FEES).mul(-1));
+                    await expect(create).to.changeEtherBalance(escrow, zen_amount1.add(FLAT_FEES));
+                    let trades = await escrow.getTrades()
+                    await expect(trades.length).to.be.equal(1)
+                    // console.log(trades[0].ass)
+        
+                    // Zen => tokenB
+                    fromAsset.amount = zen_amount2
+                    toAsset.assetAddress = tokenB.address
+                    toAsset.amount = tokenB_amount
+                    create = await escrow.connect(seller).createTrade(seller.address, fromAsset, [], toAsset, true, duration, { value: zen_amount2.add(FLAT_FEES) })
+                    await expect(create).to.not.be.reverted
+                    await expect(create).to.changeEtherBalance(seller, zen_amount2.add(FLAT_FEES).mul(-1));
+                    await expect(create).to.changeEtherBalance(escrow, zen_amount2.add(FLAT_FEES));
+                    trades = await escrow.getTrades()
+                    await expect(trades.length).to.be.equal(2)
+        
+        
+                    // Zen => tokenC
+                    fromAsset.amount = zen_amount3
+                    toAsset.assetAddress = tokenC.address
+                    toAsset.amount = tokenC_amount
+                    create = await escrow.connect(seller).createTrade(seller.address, fromAsset, [], toAsset, true, duration, { value: zen_amount3.add(FLAT_FEES) })
+                    await expect(create).to.not.be.reverted
+                    await expect(create).to.changeEtherBalance(seller, zen_amount3.add(FLAT_FEES).mul(-1));
+                    await expect(create).to.changeEtherBalance(escrow, zen_amount3.add(FLAT_FEES));
+                    trades = await escrow.getTrades()
+                    await expect(trades.length).to.be.equal(3)
+        
+                    // Zen => tokenD
+                    fromAsset.amount = zen_amount4
+                    toAsset.assetAddress = tokenD.address
+                    toAsset.amount = tokenD_amount
+                    create = await escrow.connect(seller).createTrade(seller.address, fromAsset, [], toAsset, true, duration, { value: zen_amount4.add(FLAT_FEES) })
+                    await expect(create).to.not.be.reverted
+                    await expect(create).to.changeEtherBalance(seller, zen_amount4.add(FLAT_FEES).mul(-1));
+                    await expect(create).to.changeEtherBalance(escrow, zen_amount4.add(FLAT_FEES));
+                    trades = await escrow.getTrades()
+                    await expect(trades.length).to.be.equal(4)
+        
+                    // tokenA => zen
+                    fromAsset.assetAddress = tokenA.address
+                    fromAsset.amount = tokenA_amount.div(2)
+                    fromAsset.assetType = AssetTypes.ERC20_TOKEN
+                    toAsset.assetType = AssetTypes.NATIVE_ZEN
+                    toAsset.assetAddress = ethers.constants.AddressZero
+                    toAsset.amount = zen_amount1.div(2)
+                    create = await escrow.connect(seller).createTrade(seller.address, fromAsset, [], toAsset, true, duration, { value: FLAT_FEES })
+                    await expect(create).to.not.be.reverted
+        
+                    await expect(create).to.changeEtherBalance(seller, zen_amount1.div(2).sub(FLAT_FEES));
+                    await expect(create).to.changeEtherBalance(escrow, FLAT_FEES.sub(zen_amount1.div(2)));
+                    trades = await escrow.getTrades()
+                    await expect(trades.length).to.be.equal(4)
+        
+                    // tokenD => zen
+                    fromAsset.assetAddress = tokenD.address
+                    fromAsset.amount = tokenD_amount
+                    fromAsset.assetType = AssetTypes.ERC20_TOKEN
+                    toAsset.assetType = AssetTypes.NATIVE_ZEN
+                    toAsset.assetAddress = ethers.constants.AddressZero
+                    toAsset.amount = zen_amount4
+                    create = await escrow.connect(seller).createTrade(seller.address, fromAsset, [], toAsset, true, duration, { value: FLAT_FEES })
+                    await expect(create).to.not.be.reverted
+        
+                    await expect(create).to.changeEtherBalance(seller, zen_amount4.sub(FLAT_FEES));
+                    await expect(create).to.changeEtherBalance(escrow, FLAT_FEES.sub(zen_amount4));
+                    trades = await escrow.getTrades()
+                    await expect(trades.length).to.be.equal(3)
+        
+                    printTrades(escrow, addrToTok)
+        
+                    // tokenA => tokenD, creates a virtual trade Zen => tokenD
+                    await tokenERC20SetUp(tokenA, escrow, deployer, seller, amountA)
+                    fromAsset.assetAddress = tokenA.address
+                    fromAsset.amount = tokenA_amount
+                    fromAsset.assetType = AssetTypes.ERC20_TOKEN
+                    toAsset.assetType = AssetTypes.ERC20_TOKEN
+                    toAsset.assetAddress = tokenD.address
+                    toAsset.amount = tokenD_amount
+                    create = await escrow.connect(seller).createTrade(seller.address, fromAsset, [], toAsset, true, duration, { value: FLAT_FEES })
+                    await expect(create).to.not.be.reverted
+        
+                    await expect(create).to.changeEtherBalance(seller, FLAT_FEES.mul(-1));
+                    await expect(create).to.changeEtherBalance(escrow, FLAT_FEES);
+                    trades = await escrow.getTrades()
+                    await expect(trades.length).to.be.equal(5)
+        
+                    // partial D => Zen updates executes virtual
+                    await tokenERC20SetUp(tokenD, escrow, deployer, seller, amountD)
+                    fromAsset.assetAddress = tokenD.address
+                    fromAsset.amount = tokenD_amount.mul(4).div(5)
+                    console.log("=======>" + ethers.utils.formatEther(tokenD_amount.mul(4).div(5)))
+                    fromAsset.assetType = AssetTypes.ERC20_TOKEN
+                    toAsset.assetType = AssetTypes.NATIVE_ZEN
+                    toAsset.assetAddress = ethers.constants.AddressZero
+                    toAsset.amount = zen_amount1.mul(4).div(5)
+                    console.log(`escow balanc of D ${ethers.utils.formatEther(await tokenD.balanceOf(escrow.address))}`)
+                    create = await escrow.connect(seller).createTrade(seller.address, fromAsset, [], toAsset, true, duration, { value: FLAT_FEES })
+                    await expect(create).to.not.be.reverted
+        
+                    await expect(create).to.changeEtherBalance(seller, zen_amount1.div(2).sub(FLAT_FEES));
+                    await expect(create).to.changeEtherBalance(escrow, FLAT_FEES.sub(zen_amount1.div(2)));
+                    trades = await escrow.getTrades()            
+                    await expect(trades.length).to.be.equal(7)
+                    console.log(`escow balanc of D ${ethers.utils.formatEther(await tokenD.balanceOf(escrow.address))}`)
+                    printTrades(escrow, addrToTok);
+                      // partial  C => D updates executes virtual
+                      await tokenERC20SetUp(tokenC, escrow, deployer, seller, 0.3 )
+                      fromAsset.assetAddress = tokenC.address
+                      fromAsset.amount = ethers.utils.parseEther("0.3")
+                      fromAsset.assetType = AssetTypes.ERC20_TOKEN
+                      toAsset.assetType = AssetTypes.ERC20_TOKEN
+                      toAsset.assetAddress = tokenD.address
+                      toAsset.amount = ethers.utils.parseEther("3.2")
+                      create = await escrow.connect(seller).createTrade(seller.address, fromAsset, [], toAsset, true, duration, { value: FLAT_FEES })
+                      await expect(create).to.not.be.reverted
+          
+                      await expect(create).to.changeEtherBalance(seller, zen_amount1.div(2).sub(FLAT_FEES));
+                      await expect(create).to.changeEtherBalance(escrow, FLAT_FEES.sub(zen_amount1.div(2)));
+                      trades = await escrow.getTrades()
+        
+        
+                      await expect(trades.length).to.be.equal(6)
+        
+        
+        
+        
+        
+        
+        
+                });
+        */
+
+    });
+
     describe("Fees handling", function () {
 
         it("Should change adminstrator correctly", async function () {
@@ -1773,7 +2196,7 @@ describe("Escrow Contract", function () {
 
         const numberOfTrades = 13
 
-        it(`Should handle ${numberOfTrades*2} complete trades zen => tokens and then match them`, async function (){
+        it(`Should handle ${numberOfTrades * 2} complete trades zen => tokens and then match them`, async function () {
             const { escrow, deployer, buyer, seller, fromTokenERC20, toTokenERC20, fromTokenERC721, toTokenERC721 }
                 = await loadFixture(deployEscrowFixture);
 
@@ -1783,334 +2206,253 @@ describe("Escrow Contract", function () {
             let tokens = []
 
             for (let index = 1; index <= numberOfTrades; index++) {
-                
-            const duration = 100
-            const zen_amount_ethers = ethers.utils.parseEther(index.toString())
-            const erc20_amount = numberOfTrades - index + 1
-            const erc20_amount_ethers = ethers.utils.parseEther(erc20_amount.toString())
-            const token = await createERC20(`token ${index}`, `TCK${index}`, erc20_amount.toString());
-            // await tokenERC20SetUp(token, escrow, deployer, seller, erc20_amount)
-            let fromAsset: Escrow.AssetStruct = {
-                assetId: 0,
-                assetType: AssetTypes.NATIVE_ZEN,
-                assetAddress: ethers.constants.AddressZero,
-                amount: zen_amount_ethers
-            };
 
-            let toAsset: Escrow.AssetStruct = {
-                assetId: 0,
-                assetType: AssetTypes.ERC20_TOKEN,
-                assetAddress: token.address,
-                amount: erc20_amount_ethers
-            };
-            const create = await escrow.createTrade(seller.address, fromAsset, [], toAsset, false, duration, 
-                { value: zen_amount_ethers.add(FLAT_FEES) })
-            await expect(create).to.not.reverted
-            await expect(create).to.emit(escrow, "TradeCreated")
-            await expect(create).to.not.emit(escrow, "TradeRemoved")
-            await expect(create).to.not.emit(escrow, "TradesMatched")
-            let bn = create.blockNumber!
-            const time = (await ethers.provider.getBlock(bn)).timestamp + duration
+                const duration = 100
+                const zen_amount_ethers = ethers.utils.parseEther(index.toString())
+                const erc20_amount = numberOfTrades - index + 1
+                const erc20_amount_ethers = ethers.utils.parseEther(erc20_amount.toString())
+                const token = await createERC20(`token ${index}`, `TCK${index}`, erc20_amount.toString());
+                // await tokenERC20SetUp(token, escrow, deployer, seller, erc20_amount)
+                let fromAsset: Escrow.AssetStruct = {
+                    assetId: 0,
+                    assetType: AssetTypes.NATIVE_ZEN,
+                    assetAddress: ethers.constants.AddressZero,
+                    amount: zen_amount_ethers
+                };
 
-            //add to arrays
-            times1.push(time)
-            tokens.push(token)
-        }
+                let toAsset: Escrow.AssetStruct = {
+                    assetId: 0,
+                    assetType: AssetTypes.ERC20_TOKEN,
+                    assetAddress: token.address,
+                    amount: erc20_amount_ethers
+                };
+                const create = await escrow.createTrade(seller.address, fromAsset, [], toAsset, false, duration,
+                    { value: zen_amount_ethers.add(FLAT_FEES) })
+                await expect(create).to.not.reverted
+                await expect(create).to.emit(escrow, "TradeCreated")
+                await expect(create).to.not.emit(escrow, "TradeRemoved")
+                await expect(create).to.not.emit(escrow, "TradesMatched")
+                let bn = create.blockNumber!
+                const time = (await ethers.provider.getBlock(bn)).timestamp + duration
 
-        for (let index = 1; index <= numberOfTrades; index++) {
-                
-            const duration = 100
-            const zen_amount_ethers = ethers.utils.parseEther(index.toString())
-            const erc20_amount = numberOfTrades - index + 1
-            const erc20_amount_ethers = ethers.utils.parseEther(erc20_amount.toString())
-            await tokenERC20SetUp(tokens[index-1], escrow, deployer, buyer, erc20_amount)
-            const toAsset: Escrow.AssetStruct = {
-                assetId: 0,
-                assetType: AssetTypes.NATIVE_ZEN,
-                assetAddress: ethers.constants.AddressZero,
-                amount: zen_amount_ethers
-            };
+                //add to arrays
+                times1.push(time)
+                tokens.push(token)
+            }
 
-            const fromAsset: Escrow.AssetStruct = {
-                assetId: 0,
-                assetType: AssetTypes.ERC20_TOKEN,
-                assetAddress: tokens[index-1].address,
-                amount: erc20_amount_ethers
-            };
-            const create = await escrow.createTrade(buyer.address, fromAsset, [], toAsset, false, duration, { value: FLAT_FEES })
-            await expect(create).to.not.reverted
-            await expect(create).to.emit(escrow, "TradeCreated")
-            await expect(create).to.emit(escrow, "TradeRemoved")
-            await expect(create).to.emit(escrow, "TradesMatched")
-            await expect(create).to.not.emit(escrow, "TradesPartialyMatched")
-            let bn = create.blockNumber!
-            const time = (await ethers.provider.getBlock(bn)).timestamp + duration
+            for (let index = 1; index <= numberOfTrades; index++) {
 
-            //add to arrays
-            times2.push(time)
-        }
+                const duration = 100
+                const zen_amount_ethers = ethers.utils.parseEther(index.toString())
+                const erc20_amount = numberOfTrades - index + 1
+                const erc20_amount_ethers = ethers.utils.parseEther(erc20_amount.toString())
+                await tokenERC20SetUp(tokens[index - 1], escrow, deployer, buyer, erc20_amount)
+                const toAsset: Escrow.AssetStruct = {
+                    assetId: 0,
+                    assetType: AssetTypes.NATIVE_ZEN,
+                    assetAddress: ethers.constants.AddressZero,
+                    amount: zen_amount_ethers
+                };
 
-        //check no trades remain
-        await expect((await escrow.tradesOf(seller.address)).length).to.be.equal(0)
-        await expect((await escrow.tradesOf(buyer.address)).length).to.be.equal(0)
-        await expect(await escrow.availableFees()).to.be.equal(FLAT_FEES.mul(2*numberOfTrades))
-        await expect((await escrow.getTrades()).length).to.be.equal(0)
+                const fromAsset: Escrow.AssetStruct = {
+                    assetId: 0,
+                    assetType: AssetTypes.ERC20_TOKEN,
+                    assetAddress: tokens[index - 1].address,
+                    amount: erc20_amount_ethers
+                };
+                const create = await escrow.createTrade(buyer.address, fromAsset, [], toAsset, false, duration, { value: FLAT_FEES })
+                await expect(create).to.not.reverted
+                await expect(create).to.emit(escrow, "TradeCreated")
+                await expect(create).to.emit(escrow, "TradeRemoved")
+                await expect(create).to.emit(escrow, "TradesMatched")
+                await expect(create).to.not.emit(escrow, "TradesPartialyMatched")
+                let bn = create.blockNumber!
+                const time = (await ethers.provider.getBlock(bn)).timestamp + duration
+
+                //add to arrays
+                times2.push(time)
+            }
+
+            //check no trades remain
+            await expect((await escrow.tradesOf(seller.address)).length).to.be.equal(0)
+            await expect((await escrow.tradesOf(buyer.address)).length).to.be.equal(0)
+            await expect(await escrow.availableFees()).to.be.equal(FLAT_FEES.mul(2 * numberOfTrades))
+            await expect((await escrow.getTrades()).length).to.be.equal(0)
 
         });
 
-        it(`Should handle ${numberOfTrades*2} partial trades zen => tokens (limit) and then match them`, async function () {
+        it(`Should handle ${numberOfTrades * 2} partial trades zen => tokens (limit) and then match them`, async function () {
             const { escrow, deployer, buyer, seller, fromTokenERC20, toTokenERC20, fromTokenERC721, toTokenERC721 }
                 = await loadFixture(deployEscrowFixture);
 
-            
+
             let times1 = []
             let times2 = []
             let tokens = []
 
             for (let index = 1; index <= numberOfTrades; index++) {
-                
-            const duration = 100
-            const zen_amount_ethers = ethers.utils.parseUnits(index.toString(), "gwei").mul(2)
-            const erc20_amount = numberOfTrades - index + 1
-            const erc20_amount_ethers = ethers.utils.parseEther(erc20_amount.toString()).mul(2)
-            const token = await createERC20(`token ${index}`, `TCK${index}`, erc20_amount.toString());
-            // await tokenERC20SetUp(token, escrow, deployer, seller, erc20_amount)
-            let fromAsset: Escrow.AssetStruct = {
-                assetId: 0,
-                assetType: AssetTypes.NATIVE_ZEN,
-                assetAddress: ethers.constants.AddressZero,
-                amount: zen_amount_ethers
-            };
 
-            let toAsset: Escrow.AssetStruct = {
-                assetId: 0,
-                assetType: AssetTypes.ERC20_TOKEN,
-                assetAddress: token.address,
-                amount: erc20_amount_ethers
-            };
-            const create = await escrow.createTrade(seller.address, fromAsset, [], toAsset, true, duration, 
-                { value: zen_amount_ethers.add(FLAT_FEES) })
-            await expect(create).to.not.reverted
-            await expect(create).to.emit(escrow, "TradeCreated")
-            await expect(create).to.not.emit(escrow, "TradeRemoved")
-            await expect(create).to.not.emit(escrow, "TradesMatched")
-            let bn = create.blockNumber!
-            const time = (await ethers.provider.getBlock(bn)).timestamp + duration
+                const duration = 100
+                const zen_amount_ethers = ethers.utils.parseUnits(index.toString(), "gwei").mul(2)
+                const erc20_amount = numberOfTrades - index + 1
+                const erc20_amount_ethers = ethers.utils.parseEther(erc20_amount.toString()).mul(2)
+                const token = await createERC20(`token ${index}`, `TCK${index}`, erc20_amount.toString());
+                // await tokenERC20SetUp(token, escrow, deployer, seller, erc20_amount)
+                let fromAsset: Escrow.AssetStruct = {
+                    assetId: 0,
+                    assetType: AssetTypes.NATIVE_ZEN,
+                    assetAddress: ethers.constants.AddressZero,
+                    amount: zen_amount_ethers
+                };
 
-            //add to arrays
-            times1.push(time)
-            tokens.push(token)
-        }
+                let toAsset: Escrow.AssetStruct = {
+                    assetId: 0,
+                    assetType: AssetTypes.ERC20_TOKEN,
+                    assetAddress: token.address,
+                    amount: erc20_amount_ethers
+                };
+                const create = await escrow.createTrade(seller.address, fromAsset, [], toAsset, true, duration,
+                    { value: zen_amount_ethers.add(FLAT_FEES) })
+                await expect(create).to.not.reverted
+                await expect(create).to.emit(escrow, "TradeCreated")
+                await expect(create).to.not.emit(escrow, "TradeRemoved")
+                await expect(create).to.not.emit(escrow, "TradesMatched")
+                let bn = create.blockNumber!
+                const time = (await ethers.provider.getBlock(bn)).timestamp + duration
 
-        for (let index = 1; index <= numberOfTrades; index++) {
-                
-            const duration = 100
-            const zen_amount_ethers = ethers.utils.parseUnits(index.toString(), "gwei")
-            const erc20_amount = numberOfTrades - index + 1
-            const erc20_amount_ethers = ethers.utils.parseEther(erc20_amount.toString())
-            await tokenERC20SetUp(tokens[index-1], escrow, deployer, buyer, erc20_amount)
-            const toAsset: Escrow.AssetStruct = {
-                assetId: 0,
-                assetType: AssetTypes.NATIVE_ZEN,
-                assetAddress: ethers.constants.AddressZero,
-                amount: zen_amount_ethers
-            };
+                //add to arrays
+                times1.push(time)
+                tokens.push(token)
+            }
 
-            const fromAsset: Escrow.AssetStruct = {
-                assetId: 0,
-                assetType: AssetTypes.ERC20_TOKEN,
-                assetAddress: tokens[index-1].address,
-                amount: erc20_amount_ethers
-            };
-            const create = await escrow.createTrade(buyer.address, fromAsset, [], toAsset, false, duration, { value: FLAT_FEES })
-            await expect(create).to.not.reverted
-            await expect(create).to.emit(escrow, "TradeCreated")
-            await expect(create).to.emit(escrow, "TradeRemoved")
-            await expect(create).to.not.emit(escrow, "TradesMatched")
-            await expect(create).to.emit(escrow, "TradesPartialyMatched")
-            let bn = create.blockNumber!
-            const time = (await ethers.provider.getBlock(bn)).timestamp + duration
+            for (let index = 1; index <= numberOfTrades; index++) {
 
-            //add to arrays
-            times2.push(time)
-        }
+                const duration = 100
+                const zen_amount_ethers = ethers.utils.parseUnits(index.toString(), "gwei")
+                const erc20_amount = numberOfTrades - index + 1
+                const erc20_amount_ethers = ethers.utils.parseEther(erc20_amount.toString())
+                await tokenERC20SetUp(tokens[index - 1], escrow, deployer, buyer, erc20_amount)
+                const toAsset: Escrow.AssetStruct = {
+                    assetId: 0,
+                    assetType: AssetTypes.NATIVE_ZEN,
+                    assetAddress: ethers.constants.AddressZero,
+                    amount: zen_amount_ethers
+                };
 
-        //check no trades remain
-        await expect((await escrow.tradesOf(seller.address)).length).to.be.equal(numberOfTrades)
-        await expect((await escrow.tradesOf(buyer.address)).length).to.be.equal(0)
-        await expect(await escrow.availableFees()).to.be.equal(FLAT_FEES.mul(2*numberOfTrades))
-        await expect((await escrow.getTrades()).length).to.be.equal(numberOfTrades)
+                const fromAsset: Escrow.AssetStruct = {
+                    assetId: 0,
+                    assetType: AssetTypes.ERC20_TOKEN,
+                    assetAddress: tokens[index - 1].address,
+                    amount: erc20_amount_ethers
+                };
+                const create = await escrow.createTrade(buyer.address, fromAsset, [], toAsset, false, duration, { value: FLAT_FEES })
+                await expect(create).to.not.reverted
+                await expect(create).to.emit(escrow, "TradeCreated")
+                await expect(create).to.emit(escrow, "TradeRemoved")
+                await expect(create).to.not.emit(escrow, "TradesMatched")
+                await expect(create).to.emit(escrow, "TradesPartialyMatched")
+                let bn = create.blockNumber!
+                const time = (await ethers.provider.getBlock(bn)).timestamp + duration
+
+                //add to arrays
+                times2.push(time)
+            }
+
+            //check no trades remain
+            await expect((await escrow.tradesOf(seller.address)).length).to.be.equal(numberOfTrades)
+            await expect((await escrow.tradesOf(buyer.address)).length).to.be.equal(0)
+            await expect(await escrow.availableFees()).to.be.equal(FLAT_FEES.mul(2 * numberOfTrades))
+            await expect((await escrow.getTrades()).length).to.be.equal(numberOfTrades)
 
         });
 
-        it(`Should handle ${numberOfTrades*2} partial trades zen (limit) => tokens and then match them`, async function () {
+        it(`Should handle ${numberOfTrades * 2} partial trades zen (limit) => tokens and then match them`, async function () {
             const { escrow, deployer, buyer, seller, fromTokenERC20, toTokenERC20, fromTokenERC721, toTokenERC721 }
                 = await loadFixture(deployEscrowFixture);
 
-            
+
             let times1 = []
             let times2 = []
             let tokens = []
 
             for (let index = 1; index <= numberOfTrades; index++) {
-                
-            const duration = 100
-            const zen_amount_ethers = ethers.utils.parseUnits(index.toString(), "gwei")
-            const erc20_amount = numberOfTrades - index + 1
-            const erc20_amount_ethers = ethers.utils.parseEther(erc20_amount.toString())
-            const token = await createERC20(`token ${index}`, `TCK${index}`, (erc20_amount*2).toString());
-            // await tokenERC20SetUp(token, escrow, deployer, seller, erc20_amount)
-            let fromAsset: Escrow.AssetStruct = {
-                assetId: 0,
-                assetType: AssetTypes.NATIVE_ZEN,
-                assetAddress: ethers.constants.AddressZero,
-                amount: zen_amount_ethers
-            };
 
-            let toAsset: Escrow.AssetStruct = {
-                assetId: 0,
-                assetType: AssetTypes.ERC20_TOKEN,
-                assetAddress: token.address,
-                amount: erc20_amount_ethers
-            };
-            const create = await escrow.createTrade(seller.address, fromAsset, [], toAsset, false, duration, 
-                { value: zen_amount_ethers.add(FLAT_FEES) })
-            await expect(create).to.not.reverted
-            await expect(create).to.emit(escrow, "TradeCreated")
-            await expect(create).to.not.emit(escrow, "TradeRemoved")
-            await expect(create).to.not.emit(escrow, "TradesMatched")
-            let bn = create.blockNumber!
-            const time = (await ethers.provider.getBlock(bn)).timestamp + duration
+                const duration = 100
+                const zen_amount_ethers = ethers.utils.parseUnits(index.toString(), "gwei")
+                const erc20_amount = numberOfTrades - index + 1
+                const erc20_amount_ethers = ethers.utils.parseEther(erc20_amount.toString())
+                const token = await createERC20(`token ${index}`, `TCK${index}`, (erc20_amount * 2).toString());
+                // await tokenERC20SetUp(token, escrow, deployer, seller, erc20_amount)
+                let fromAsset: Escrow.AssetStruct = {
+                    assetId: 0,
+                    assetType: AssetTypes.NATIVE_ZEN,
+                    assetAddress: ethers.constants.AddressZero,
+                    amount: zen_amount_ethers
+                };
 
-            //add to arrays
-            times1.push(time)
-            tokens.push(token)
-        }
+                let toAsset: Escrow.AssetStruct = {
+                    assetId: 0,
+                    assetType: AssetTypes.ERC20_TOKEN,
+                    assetAddress: token.address,
+                    amount: erc20_amount_ethers
+                };
+                const create = await escrow.createTrade(seller.address, fromAsset, [], toAsset, true, duration,
+                    { value: zen_amount_ethers.add(FLAT_FEES) })
+                await expect(create).to.not.reverted
+                await expect(create).to.emit(escrow, "TradeCreated")
+                await expect(create).to.not.emit(escrow, "TradeRemoved")
+                await expect(create).to.not.emit(escrow, "TradesMatched")
+                let bn = create.blockNumber!
+                const time = (await ethers.provider.getBlock(bn)).timestamp + duration
 
-        for (let index = 1; index <= numberOfTrades; index++) {
-                
-            const duration = 100
-            const zen_amount_ethers = ethers.utils.parseUnits(index.toString(), "gwei").mul(2)
-            const erc20_amount = numberOfTrades - index + 1
-            const erc20_amount_ethers = ethers.utils.parseEther((erc20_amount*2).toString())
-            await tokenERC20SetUp(tokens[index-1], escrow, deployer, buyer, erc20_amount*2)
-            const toAsset: Escrow.AssetStruct = {
-                assetId: 0,
-                assetType: AssetTypes.NATIVE_ZEN,
-                assetAddress: ethers.constants.AddressZero,
-                amount: zen_amount_ethers
-            };
-
-            const fromAsset: Escrow.AssetStruct = {
-                assetId: 0,
-                assetType: AssetTypes.ERC20_TOKEN,
-                assetAddress: tokens[index-1].address,
-                amount: erc20_amount_ethers
-            };
-            const create = await escrow.createTrade(buyer.address, fromAsset, [], toAsset, true, duration, { value: FLAT_FEES })
-            await expect(create).to.not.reverted
-            await expect(create).to.emit(escrow, "TradeCreated")
-            await expect(create).to.emit(escrow, "TradeRemoved")
-            await expect(create).to.not.emit(escrow, "TradesMatched")
-            await expect(create).to.emit(escrow, "TradesPartialyMatched")
-            let bn = create.blockNumber!
-            const time = (await ethers.provider.getBlock(bn)).timestamp + duration
-
-            //add to arrays
-            times2.push(time)
-        }
-
-        //check no trades remain
-        await expect((await escrow.tradesOf(seller.address)).length).to.be.equal(0)
-        await expect((await escrow.tradesOf(buyer.address)).length).to.be.equal(numberOfTrades)
-        await expect(await escrow.availableFees()).to.be.equal(FLAT_FEES.mul(2*numberOfTrades))
-        await expect((await escrow.getTrades()).length).to.be.equal(numberOfTrades)
-
-        });
-
-        it(`Should handle ${numberOfTrades*2} complete trades zen => nfts and then match them`, async function () {
-            const { escrow, deployer, buyer, seller, fromTokenERC20, toTokenERC20, fromTokenERC721, toTokenERC721 }
-                = await loadFixture(deployEscrowFixture);
-
-            //const numberOfTrades = 10
-            let times1 = []
-            let times2 = []
-            let tokens = []
+                //add to arrays
+                times1.push(time)
+                tokens.push(token)
+            }
 
             for (let index = 1; index <= numberOfTrades; index++) {
-                
-            const duration = 100
-            const zen_amount_ethers = ethers.utils.parseEther(index.toString())
-            const erc721_amount = numberOfTrades - index + 1
-            const token = await createERC721(`token ${index}`, `TCK${index}`);
-            // await tokenERC20SetUp(token, escrow, deployer, seller, erc20_amount)
-            let fromAsset: Escrow.AssetStruct = {
-                assetId: 0,
-                assetType: AssetTypes.NATIVE_ZEN,
-                assetAddress: ethers.constants.AddressZero,
-                amount: zen_amount_ethers
-            };
 
-            let toAsset: Escrow.AssetStruct = {
-                assetId: 0,
-                assetType: AssetTypes.ERC721_NFT,
-                assetAddress: token.address,
-                amount: erc721_amount
-            };
-            const create = await escrow.createTrade(seller.address, fromAsset, [], toAsset, false, duration, 
-                { value: zen_amount_ethers.add(FLAT_FEES) })
-            await expect(create).to.not.reverted
-            await expect(create).to.emit(escrow, "TradeCreated")
-            await expect(create).to.not.emit(escrow, "TradeRemoved")
-            await expect(create).to.not.emit(escrow, "TradesMatched")
-            let bn = create.blockNumber!
-            const time = (await ethers.provider.getBlock(bn)).timestamp + duration
+                const duration = 100
+                const zen_amount_ethers = ethers.utils.parseUnits(index.toString(), "gwei").mul(2)
+                const erc20_amount = numberOfTrades - index + 1
+                const erc20_amount_ethers = ethers.utils.parseEther((erc20_amount * 2).toString())
+                await tokenERC20SetUp(tokens[index - 1], escrow, deployer, buyer, erc20_amount * 2)
+                const toAsset: Escrow.AssetStruct = {
+                    assetId: 0,
+                    assetType: AssetTypes.NATIVE_ZEN,
+                    assetAddress: ethers.constants.AddressZero,
+                    amount: zen_amount_ethers
+                };
 
-            //add to arrays
-            times1.push(time)
-            tokens.push(token)
-        }
+                const fromAsset: Escrow.AssetStruct = {
+                    assetId: 0,
+                    assetType: AssetTypes.ERC20_TOKEN,
+                    assetAddress: tokens[index - 1].address,
+                    amount: erc20_amount_ethers
+                };
+                const create = await escrow.createTrade(buyer.address, fromAsset, [], toAsset, true, duration, { value: FLAT_FEES })
+                await expect(create).to.not.reverted
+                await expect(create).to.emit(escrow, "TradeCreated")
+                await expect(create).to.emit(escrow, "TradeRemoved")
+                await expect(create).to.not.emit(escrow, "TradesMatched")
+                await expect(create).to.emit(escrow, "TradesPartialyMatched")
+                let bn = create.blockNumber!
+                const time = (await ethers.provider.getBlock(bn)).timestamp + duration
 
-        for (let index = 1; index <= numberOfTrades; index++) {
-                
-            const duration = 100
-            const zen_amount_ethers = ethers.utils.parseEther(index.toString())
-            const erc721_amount = numberOfTrades - index + 1
-            const tokIds = await tokenERC721SetUp(tokens[index-1], escrow, deployer, buyer, erc721_amount)
-            const toAsset: Escrow.AssetStruct = {
-                assetId: 0,
-                assetType: AssetTypes.NATIVE_ZEN,
-                assetAddress: ethers.constants.AddressZero,
-                amount: zen_amount_ethers
-            };
+                //add to arrays
+                times2.push(time)
+            }
 
-            const fromAsset: Escrow.AssetStruct = {
-                assetId: 0,
-                assetType: AssetTypes.ERC721_NFT,
-                assetAddress: tokens[index-1].address,
-                amount: erc721_amount
-            };
-            const create = await escrow.createTrade(buyer.address, fromAsset, tokIds, toAsset, false, duration, { value: FLAT_FEES })
-            await expect(create).to.not.reverted
-            await expect(create).to.emit(escrow, "TradeCreated")
-            await expect(create).to.emit(escrow, "TradeRemoved")
-            await expect(create).to.emit(escrow, "TradesMatched")
-            await expect(create).to.not.emit(escrow, "TradesPartialyMatched")
-            let bn = create.blockNumber!
-            const time = (await ethers.provider.getBlock(bn)).timestamp + duration
+            //check no trades remain
+            await expect((await escrow.tradesOf(seller.address)).length).to.be.equal(0)
+            await expect((await escrow.tradesOf(buyer.address)).length).to.be.equal(numberOfTrades)
 
-            //add to arrays
-            times2.push(time)
-        }
-
-        //check no trades remain
-        await expect((await escrow.tradesOf(seller.address)).length).to.be.equal(0)
-        await expect((await escrow.tradesOf(buyer.address)).length).to.be.equal(0)
-        await expect(await escrow.availableFees()).to.be.equal(FLAT_FEES.mul(2*numberOfTrades))
+            await expect(await escrow.availableFees()).to.be.equal(FLAT_FEES.mul(2 * numberOfTrades))
+            await expect((await escrow.getTrades()).length).to.be.equal(numberOfTrades)
 
         });
 
-        it(`Should handle ${numberOfTrades*2} partial trades zen (limit) => nfts and then match them`, async function () {
+        it(`Should handle ${numberOfTrades * 2} complete trades zen => nfts and then match them`, async function () {
             const { escrow, deployer, buyer, seller, fromTokenERC20, toTokenERC20, fromTokenERC721, toTokenERC721 }
                 = await loadFixture(deployEscrowFixture);
 
@@ -2120,79 +2462,79 @@ describe("Escrow Contract", function () {
             let tokens = []
 
             for (let index = 1; index <= numberOfTrades; index++) {
-                
-            const duration = 100
-            const zen_amount_ethers = ethers.utils.parseEther(index.toString())
-            const erc721_amount = numberOfTrades - index + 1
-            const token = await createERC721(`token ${index}`, `TCK${index}`);
-            // await tokenERC20SetUp(token, escrow, deployer, seller, erc20_amount)
-            let fromAsset: Escrow.AssetStruct = {
-                assetId: 0,
-                assetType: AssetTypes.NATIVE_ZEN,
-                assetAddress: ethers.constants.AddressZero,
-                amount: zen_amount_ethers
-            };
 
-            let toAsset: Escrow.AssetStruct = {
-                assetId: 0,
-                assetType: AssetTypes.ERC721_NFT,
-                assetAddress: token.address,
-                amount: erc721_amount
-            };
-            const create = await escrow.createTrade(seller.address, fromAsset, [], toAsset, false, duration, 
-                { value: zen_amount_ethers.add(FLAT_FEES) })
-            await expect(create).to.not.reverted
-            await expect(create).to.emit(escrow, "TradeCreated")
-            await expect(create).to.not.emit(escrow, "TradeRemoved")
-            await expect(create).to.not.emit(escrow, "TradesMatched")
-            let bn = create.blockNumber!
-            const time = (await ethers.provider.getBlock(bn)).timestamp + duration
+                const duration = 100
+                const zen_amount_ethers = ethers.utils.parseEther(index.toString())
+                const erc721_amount = numberOfTrades - index + 1
+                const token = await createERC721(`token ${index}`, `TCK${index}`);
+                // await tokenERC20SetUp(token, escrow, deployer, seller, erc20_amount)
+                let fromAsset: Escrow.AssetStruct = {
+                    assetId: 0,
+                    assetType: AssetTypes.NATIVE_ZEN,
+                    assetAddress: ethers.constants.AddressZero,
+                    amount: zen_amount_ethers
+                };
 
-            //add to arrays
-            times1.push(time)
-            tokens.push(token)
-        }
+                let toAsset: Escrow.AssetStruct = {
+                    assetId: 0,
+                    assetType: AssetTypes.ERC721_NFT,
+                    assetAddress: token.address,
+                    amount: erc721_amount
+                };
+                const create = await escrow.createTrade(seller.address, fromAsset, [], toAsset, false, duration,
+                    { value: zen_amount_ethers.add(FLAT_FEES) })
+                await expect(create).to.not.reverted
+                await expect(create).to.emit(escrow, "TradeCreated")
+                await expect(create).to.not.emit(escrow, "TradeRemoved")
+                await expect(create).to.not.emit(escrow, "TradesMatched")
+                let bn = create.blockNumber!
+                const time = (await ethers.provider.getBlock(bn)).timestamp + duration
 
-        for (let index = 1; index <= numberOfTrades; index++) {
-                
-            const duration = 100
-            const zen_amount_ethers = ethers.utils.parseEther(index.toString()).mul(2)
-            const erc721_amount = (numberOfTrades - index + 1)*2
-            const tokIds = await tokenERC721SetUp(tokens[index-1], escrow, deployer, buyer, erc721_amount)
-            const toAsset: Escrow.AssetStruct = {
-                assetId: 0,
-                assetType: AssetTypes.NATIVE_ZEN,
-                assetAddress: ethers.constants.AddressZero,
-                amount: zen_amount_ethers
-            };
+                //add to arrays
+                times1.push(time)
+                tokens.push(token)
+            }
 
-            const fromAsset: Escrow.AssetStruct = {
-                assetId: 0,
-                assetType: AssetTypes.ERC721_NFT,
-                assetAddress: tokens[index-1].address,
-                amount: erc721_amount
-            };
-            const create = await escrow.createTrade(buyer.address, fromAsset, tokIds, toAsset, true, duration, { value: FLAT_FEES })
-            await expect(create).to.not.reverted
-            await expect(create).to.emit(escrow, "TradeCreated")
-            await expect(create).to.emit(escrow, "TradeRemoved")
-            await expect(create).to.not.emit(escrow, "TradesMatched")
-            await expect(create).to.emit(escrow, "TradesPartialyMatched")
-            let bn = create.blockNumber!
-            const time = (await ethers.provider.getBlock(bn)).timestamp + duration
+            for (let index = 1; index <= numberOfTrades; index++) {
 
-            //add to arrays
-            times2.push(time)
-        }
+                const duration = 100
+                const zen_amount_ethers = ethers.utils.parseEther(index.toString())
+                const erc721_amount = numberOfTrades - index + 1
+                const tokIds = await tokenERC721SetUp(tokens[index - 1], escrow, deployer, buyer, erc721_amount)
+                const toAsset: Escrow.AssetStruct = {
+                    assetId: 0,
+                    assetType: AssetTypes.NATIVE_ZEN,
+                    assetAddress: ethers.constants.AddressZero,
+                    amount: zen_amount_ethers
+                };
 
-        //check no trades remain
-        await expect((await escrow.tradesOf(seller.address)).length).to.be.equal(0)
-        await expect((await escrow.tradesOf(buyer.address)).length).to.be.equal(numberOfTrades)
-        await expect(await escrow.availableFees()).to.be.equal(FLAT_FEES.mul(2*numberOfTrades))
+                const fromAsset: Escrow.AssetStruct = {
+                    assetId: 0,
+                    assetType: AssetTypes.ERC721_NFT,
+                    assetAddress: tokens[index - 1].address,
+                    amount: erc721_amount
+                };
+                const create = await escrow.createTrade(buyer.address, fromAsset, tokIds, toAsset, false, duration, { value: FLAT_FEES })
+                await expect(create).to.not.reverted
+                await expect(create).to.emit(escrow, "TradeCreated")
+                await expect(create).to.emit(escrow, "TradeRemoved")
+                await expect(create).to.emit(escrow, "TradesMatched")
+                await expect(create).to.not.emit(escrow, "TradesPartialyMatched")
+                let bn = create.blockNumber!
+                const time = (await ethers.provider.getBlock(bn)).timestamp + duration
+
+                //add to arrays
+                times2.push(time)
+            }
+
+            //check no trades remain
+            await expect((await escrow.tradesOf(seller.address)).length).to.be.equal(0)
+            await expect((await escrow.tradesOf(buyer.address)).length).to.be.equal(0)
+            await expect(await escrow.availableFees()).to.be.equal(FLAT_FEES.mul(2 * numberOfTrades))
 
         });
 
-        it(`Should handle ${numberOfTrades*2} partial trades zen => nfts (limit) and then match them`, async function () {
+        it(`Should handle ${numberOfTrades * 2} partial trades zen (limit) => nfts and then match them`, async function () {
             const { escrow, deployer, buyer, seller, fromTokenERC20, toTokenERC20, fromTokenERC721, toTokenERC721 }
                 = await loadFixture(deployEscrowFixture);
 
@@ -2202,453 +2544,535 @@ describe("Escrow Contract", function () {
             let tokens = []
 
             for (let index = 1; index <= numberOfTrades; index++) {
-                
-            const duration = 100
-            const zen_amount_ethers = ethers.utils.parseEther(index.toString()).mul(2)
-            const erc721_amount = (numberOfTrades - index + 1)*2
-            const token = await createERC721(`token ${index}`, `TCK${index}`);
-            // await tokenERC20SetUp(token, escrow, deployer, seller, erc20_amount)
-            let fromAsset: Escrow.AssetStruct = {
-                assetId: 0,
-                assetType: AssetTypes.NATIVE_ZEN,
-                assetAddress: ethers.constants.AddressZero,
-                amount: zen_amount_ethers
-            };
 
-            let toAsset: Escrow.AssetStruct = {
-                assetId: 0,
-                assetType: AssetTypes.ERC721_NFT,
-                assetAddress: token.address,
-                amount: erc721_amount
-            };
-            const create = await escrow.createTrade(seller.address, fromAsset, [], toAsset, true, duration, 
-                { value: zen_amount_ethers.add(FLAT_FEES) })
-            await expect(create).to.not.reverted
-            await expect(create).to.emit(escrow, "TradeCreated")
-            await expect(create).to.not.emit(escrow, "TradeRemoved")
-            await expect(create).to.not.emit(escrow, "TradesMatched")
-            await expect(create).to.not.emit(escrow, "TradesPartialyMatched")
-            let bn = create.blockNumber!
-            const time = (await ethers.provider.getBlock(bn)).timestamp + duration
+                const duration = 100
+                const zen_amount_ethers = ethers.utils.parseEther(index.toString())
+                const erc721_amount = numberOfTrades - index + 1
+                const token = await createERC721(`token ${index}`, `TCK${index}`);
+                // await tokenERC20SetUp(token, escrow, deployer, seller, erc20_amount)
+                let fromAsset: Escrow.AssetStruct = {
+                    assetId: 0,
+                    assetType: AssetTypes.NATIVE_ZEN,
+                    assetAddress: ethers.constants.AddressZero,
+                    amount: zen_amount_ethers
+                };
 
-            //add to arrays
-            times1.push(time)
-            tokens.push(token)
-        }
+                let toAsset: Escrow.AssetStruct = {
+                    assetId: 0,
+                    assetType: AssetTypes.ERC721_NFT,
+                    assetAddress: token.address,
+                    amount: erc721_amount
+                };
+                const create = await escrow.createTrade(seller.address, fromAsset, [], toAsset, false, duration,
+                    { value: zen_amount_ethers.add(FLAT_FEES) })
+                await expect(create).to.not.reverted
+                await expect(create).to.emit(escrow, "TradeCreated")
+                await expect(create).to.not.emit(escrow, "TradeRemoved")
+                await expect(create).to.not.emit(escrow, "TradesMatched")
+                let bn = create.blockNumber!
+                const time = (await ethers.provider.getBlock(bn)).timestamp + duration
 
-        for (let index = 1; index <= numberOfTrades; index++) {
-                
-            const duration = 100
-            const zen_amount_ethers = ethers.utils.parseEther(index.toString())
-            const erc721_amount = (numberOfTrades - index + 1)
-            const tokIds = await tokenERC721SetUp(tokens[index-1], escrow, deployer, buyer, erc721_amount)
-            const toAsset: Escrow.AssetStruct = {
-                assetId: 0,
-                assetType: AssetTypes.NATIVE_ZEN,
-                assetAddress: ethers.constants.AddressZero,
-                amount: zen_amount_ethers
-            };
+                //add to arrays
+                times1.push(time)
+                tokens.push(token)
+            }
 
-            const fromAsset: Escrow.AssetStruct = {
-                assetId: 0,
-                assetType: AssetTypes.ERC721_NFT,
-                assetAddress: tokens[index-1].address,
-                amount: erc721_amount
-            };
-            const create = await escrow.createTrade(buyer.address, fromAsset, tokIds, toAsset, true, duration, { value: FLAT_FEES })
-            await expect(create).to.not.reverted
-            await expect(create).to.emit(escrow, "TradeCreated")
-            await expect(create).to.emit(escrow, "TradeRemoved")
-            await expect(create).to.not.emit(escrow, "TradesMatched")
-            await expect(create).to.emit(escrow, "TradesPartialyMatched")
-            let bn = create.blockNumber!
-            const time = (await ethers.provider.getBlock(bn)).timestamp + duration
+            for (let index = 1; index <= numberOfTrades; index++) {
 
-            //add to arrays
-            times2.push(time)
-        }
+                const duration = 100
+                const zen_amount_ethers = ethers.utils.parseEther(index.toString()).mul(2)
+                const erc721_amount = (numberOfTrades - index + 1) * 2
+                const tokIds = await tokenERC721SetUp(tokens[index - 1], escrow, deployer, buyer, erc721_amount)
+                const toAsset: Escrow.AssetStruct = {
+                    assetId: 0,
+                    assetType: AssetTypes.NATIVE_ZEN,
+                    assetAddress: ethers.constants.AddressZero,
+                    amount: zen_amount_ethers
+                };
 
-        //check no trades remain
-        await expect((await escrow.tradesOf(seller.address)).length).to.be.equal(numberOfTrades)
-        await expect((await escrow.tradesOf(buyer.address)).length).to.be.equal(0)
-        await expect(await escrow.availableFees()).to.be.equal(FLAT_FEES.mul(2*numberOfTrades))
+                const fromAsset: Escrow.AssetStruct = {
+                    assetId: 0,
+                    assetType: AssetTypes.ERC721_NFT,
+                    assetAddress: tokens[index - 1].address,
+                    amount: erc721_amount
+                };
+                const create = await escrow.createTrade(buyer.address, fromAsset, tokIds, toAsset, true, duration, { value: FLAT_FEES })
+                await expect(create).to.not.reverted
+                await expect(create).to.emit(escrow, "TradeCreated")
+                await expect(create).to.emit(escrow, "TradeRemoved")
+                await expect(create).to.not.emit(escrow, "TradesMatched")
+                await expect(create).to.emit(escrow, "TradesPartialyMatched")
+                let bn = create.blockNumber!
+                const time = (await ethers.provider.getBlock(bn)).timestamp + duration
+
+                //add to arrays
+                times2.push(time)
+            }
+
+            //check no trades remain
+            await expect((await escrow.tradesOf(seller.address)).length).to.be.equal(0)
+            await expect((await escrow.tradesOf(buyer.address)).length).to.be.equal(numberOfTrades)
+            await expect(await escrow.availableFees()).to.be.equal(FLAT_FEES.mul(2 * numberOfTrades))
 
         });
 
-        it(`Should handle ${numberOfTrades*3} multiple partial trades zen (limit) => tokens and then match them`, async function () {
+        it(`Should handle ${numberOfTrades * 2} partial trades zen => nfts (limit) and then match them`, async function () {
+            const { escrow, deployer, buyer, seller, fromTokenERC20, toTokenERC20, fromTokenERC721, toTokenERC721 }
+                = await loadFixture(deployEscrowFixture);
+
+            //const numberOfTrades = 10
+            let times1 = []
+            let times2 = []
+            let tokens = []
+
+            for (let index = 1; index <= numberOfTrades; index++) {
+
+                const duration = 100
+                const zen_amount_ethers = ethers.utils.parseEther(index.toString()).mul(2)
+                const erc721_amount = (numberOfTrades - index + 1) * 2
+                const token = await createERC721(`token ${index}`, `TCK${index}`);
+                // await tokenERC20SetUp(token, escrow, deployer, seller, erc20_amount)
+                let fromAsset: Escrow.AssetStruct = {
+                    assetId: 0,
+                    assetType: AssetTypes.NATIVE_ZEN,
+                    assetAddress: ethers.constants.AddressZero,
+                    amount: zen_amount_ethers
+                };
+
+                let toAsset: Escrow.AssetStruct = {
+                    assetId: 0,
+                    assetType: AssetTypes.ERC721_NFT,
+                    assetAddress: token.address,
+                    amount: erc721_amount
+                };
+                const create = await escrow.createTrade(seller.address, fromAsset, [], toAsset, true, duration,
+                    { value: zen_amount_ethers.add(FLAT_FEES) })
+                await expect(create).to.not.reverted
+                await expect(create).to.emit(escrow, "TradeCreated")
+                await expect(create).to.not.emit(escrow, "TradeRemoved")
+                await expect(create).to.not.emit(escrow, "TradesMatched")
+                await expect(create).to.not.emit(escrow, "TradesPartialyMatched")
+                let bn = create.blockNumber!
+                const time = (await ethers.provider.getBlock(bn)).timestamp + duration
+
+                //add to arrays
+                times1.push(time)
+                tokens.push(token)
+            }
+
+            for (let index = 1; index <= numberOfTrades; index++) {
+
+                const duration = 100
+                const zen_amount_ethers = ethers.utils.parseEther(index.toString())
+                const erc721_amount = (numberOfTrades - index + 1)
+                const tokIds = await tokenERC721SetUp(tokens[index - 1], escrow, deployer, buyer, erc721_amount)
+                const toAsset: Escrow.AssetStruct = {
+                    assetId: 0,
+                    assetType: AssetTypes.NATIVE_ZEN,
+                    assetAddress: ethers.constants.AddressZero,
+                    amount: zen_amount_ethers
+                };
+
+                const fromAsset: Escrow.AssetStruct = {
+                    assetId: 0,
+                    assetType: AssetTypes.ERC721_NFT,
+                    assetAddress: tokens[index - 1].address,
+                    amount: erc721_amount
+                };
+                const create = await escrow.createTrade(buyer.address, fromAsset, tokIds, toAsset, true, duration, { value: FLAT_FEES })
+                await expect(create).to.not.reverted
+                await expect(create).to.emit(escrow, "TradeCreated")
+                await expect(create).to.emit(escrow, "TradeRemoved")
+                await expect(create).to.not.emit(escrow, "TradesMatched")
+                await expect(create).to.emit(escrow, "TradesPartialyMatched")
+                let bn = create.blockNumber!
+                const time = (await ethers.provider.getBlock(bn)).timestamp + duration
+
+                //add to arrays
+                times2.push(time)
+            }
+
+            //check no trades remain
+            await expect((await escrow.tradesOf(seller.address)).length).to.be.equal(numberOfTrades)
+            await expect((await escrow.tradesOf(buyer.address)).length).to.be.equal(0)
+            await expect(await escrow.availableFees()).to.be.equal(FLAT_FEES.mul(2 * numberOfTrades))
+
+        });
+
+        it(`Should handle ${numberOfTrades * 3} multiple partial trades zen (limit) => tokens and then match them`, async function () {
             const { escrow, deployer, buyer, seller, other, fromTokenERC20, toTokenERC20, fromTokenERC721, toTokenERC721 }
                 = await loadFixture(deployEscrowFixture);
 
-            
+
             let times1 = []
             let times2 = []
             let tokens = []
 
             for (let index = 1; index <= numberOfTrades; index++) {
-                
-            const duration = 100
-            const zen_amount_ethers = ethers.utils.parseUnits(index.toString(), "gwei")
-            const erc20_amount = numberOfTrades - index + 1
-            const erc20_amount_ethers = ethers.utils.parseEther(erc20_amount.toString())
-            const token = await createERC20(`token ${index}`, `TCK${index}`, (erc20_amount*2).toString());
-            // await tokenERC20SetUp(token, escrow, deployer, seller, erc20_amount)
-            let fromAsset: Escrow.AssetStruct = {
-                assetId: 0,
-                assetType: AssetTypes.NATIVE_ZEN,
-                assetAddress: ethers.constants.AddressZero,
-                amount: zen_amount_ethers
-            };
 
-            let toAsset: Escrow.AssetStruct = {
-                assetId: 0,
-                assetType: AssetTypes.ERC20_TOKEN,
-                assetAddress: token.address,
-                amount: erc20_amount_ethers
-            };
-            let create = await escrow.connect(seller).createTrade(seller.address, fromAsset, [], toAsset, true, duration, 
-                { value: zen_amount_ethers.add(FLAT_FEES) })
-            await expect(create).to.not.reverted
-            await expect(create).to.emit(escrow, "TradeCreated")
-            await expect(create).to.not.emit(escrow, "TradeRemoved")
-            await expect(create).to.not.emit(escrow, "TradesMatched")
-            await expect(create).to.not.emit(escrow, "TradesPartialyMatched")
-            await expect(create).changeEtherBalance(seller, zen_amount_ethers.add(FLAT_FEES).mul(-1))
-            await expect(create).changeEtherBalance(escrow, zen_amount_ethers.add(FLAT_FEES))
-            let bn = create.blockNumber!
-            let time = (await ethers.provider.getBlock(bn)).timestamp + duration
-            times1.push(time)
+                const duration = 100
+                const zen_amount_ethers = ethers.utils.parseUnits(index.toString(), "gwei")
+                const erc20_amount = numberOfTrades - index + 1
+                const erc20_amount_ethers = ethers.utils.parseEther(erc20_amount.toString())
+                const token = await createERC20(`token ${index}`, `TCK${index}`, (erc20_amount * 2).toString());
+                // await tokenERC20SetUp(token, escrow, deployer, seller, erc20_amount)
+                let fromAsset: Escrow.AssetStruct = {
+                    assetId: 0,
+                    assetType: AssetTypes.NATIVE_ZEN,
+                    assetAddress: ethers.constants.AddressZero,
+                    amount: zen_amount_ethers
+                };
 
-            create = await escrow.connect(other).createTrade(other.address, fromAsset, [], toAsset, true, duration, 
-                { value: zen_amount_ethers.add(FLAT_FEES) })
-            await expect(create).to.not.reverted
-            await expect(create).to.emit(escrow, "TradeCreated")
-            await expect(create).to.not.emit(escrow, "TradeRemoved")
-            await expect(create).to.not.emit(escrow, "TradesPartialyMatched")
-            await expect(create).changeEtherBalance(other, zen_amount_ethers.add(FLAT_FEES).mul(-1))
-            await expect(create).changeEtherBalance(escrow, zen_amount_ethers.add(FLAT_FEES))
-            bn = create.blockNumber!
-            time = (await ethers.provider.getBlock(bn)).timestamp + duration
+                let toAsset: Escrow.AssetStruct = {
+                    assetId: 0,
+                    assetType: AssetTypes.ERC20_TOKEN,
+                    assetAddress: token.address,
+                    amount: erc20_amount_ethers
+                };
+                let create = await escrow.connect(seller).createTrade(seller.address, fromAsset, [], toAsset, true, duration,
+                    { value: zen_amount_ethers.add(FLAT_FEES) })
+                await expect(create).to.not.reverted
+                await expect(create).to.emit(escrow, "TradeCreated")
+                await expect(create).to.not.emit(escrow, "TradeRemoved")
+                await expect(create).to.not.emit(escrow, "TradesMatched")
+                await expect(create).to.not.emit(escrow, "TradesPartialyMatched")
+                await expect(create).changeEtherBalance(seller, zen_amount_ethers.add(FLAT_FEES).mul(-1))
+                await expect(create).changeEtherBalance(escrow, zen_amount_ethers.add(FLAT_FEES))
+                let bn = create.blockNumber!
+                let time = (await ethers.provider.getBlock(bn)).timestamp + duration
+                times1.push(time)
 
-            //add to arrays
-            times1.push(time)
-            tokens.push(token)
-        }
+                create = await escrow.connect(other).createTrade(other.address, fromAsset, [], toAsset, true, duration,
+                    { value: zen_amount_ethers.add(FLAT_FEES) })
+                await expect(create).to.not.reverted
+                await expect(create).to.emit(escrow, "TradeCreated")
+                await expect(create).to.not.emit(escrow, "TradeRemoved")
+                await expect(create).to.not.emit(escrow, "TradesPartialyMatched")
+                await expect(create).changeEtherBalance(other, zen_amount_ethers.add(FLAT_FEES).mul(-1))
+                await expect(create).changeEtherBalance(escrow, zen_amount_ethers.add(FLAT_FEES))
+                bn = create.blockNumber!
+                time = (await ethers.provider.getBlock(bn)).timestamp + duration
 
-        const buyerBalBefore = await ethers.provider.getBalance(buyer.address)
-        let total = ethers.BigNumber.from(0)
+                //add to arrays
+                times1.push(time)
+                tokens.push(token)
+            }
 
-        for (let index = 1; index <= numberOfTrades; index++) {
-                
-            const duration = 100
-            const zen_amount_ethers = ethers.utils.parseUnits(index.toString(), "gwei").mul(2)
-            total = total.add(zen_amount_ethers)
-            const erc20_amount = numberOfTrades - index + 1
-            const erc20_amount_ethers = ethers.utils.parseEther(erc20_amount.toString()).mul(2)
-            const bal0 = await ethers.provider.getBalance(buyer.address)
-            await tokenERC20SetUp(tokens[index-1], escrow, deployer, buyer, erc20_amount*2)
-            const bal1 = await ethers.provider.getBalance(buyer.address)
-            total = total.sub(bal0.sub(bal1))
-            const toAsset: Escrow.AssetStruct = {
-                assetId: 0,
-                assetType: AssetTypes.NATIVE_ZEN,
-                assetAddress: ethers.constants.AddressZero,
-                amount: zen_amount_ethers
-            };
+            const buyerBalBefore = await ethers.provider.getBalance(buyer.address)
+            let total = ethers.BigNumber.from(0)
 
-            const fromAsset: Escrow.AssetStruct = {
-                assetId: 0,
-                assetType: AssetTypes.ERC20_TOKEN,
-                assetAddress: tokens[index-1].address,
-                amount: erc20_amount_ethers
-            };
-            const create = await escrow.createTrade(buyer.address, fromAsset, [], toAsset, true, duration, { value: FLAT_FEES })
-            await expect(create).changeTokenBalance(tokens[index-1], buyer, erc20_amount_ethers.mul(-1))
-            await expect(create).changeEtherBalance(buyer, zen_amount_ethers)
-            await expect(create).changeTokenBalance(tokens[index-1], seller, erc20_amount_ethers.div(2))
-            await expect(create).changeTokenBalance(tokens[index-1], other, erc20_amount_ethers.div(2))
-            await expect(create).changeEtherBalance(escrow, FLAT_FEES.sub(zen_amount_ethers))
-            await expect(create).to.not.reverted
-            await expect(create).to.emit(escrow, "TradeCreated")
-            await expect(create).to.emit(escrow, "TradeRemoved")
-            await expect(create).to.emit(escrow, "TradesMatched")
-            await expect(create).to.emit(escrow, "TradesPartialyMatched")
-            let bn = create.blockNumber!
-            const time = (await ethers.provider.getBlock(bn)).timestamp + duration
+            for (let index = 1; index <= numberOfTrades; index++) {
 
-            //add to arrays
-            times2.push(time)
-        }
+                const duration = 100
+                const zen_amount_ethers = ethers.utils.parseUnits(index.toString(), "gwei").mul(2)
+                total = total.add(zen_amount_ethers)
+                const erc20_amount = numberOfTrades - index + 1
+                const erc20_amount_ethers = ethers.utils.parseEther(erc20_amount.toString()).mul(2)
+                const bal0 = await ethers.provider.getBalance(buyer.address)
+                await tokenERC20SetUp(tokens[index - 1], escrow, deployer, buyer, erc20_amount * 2)
+                const bal1 = await ethers.provider.getBalance(buyer.address)
+                total = total.sub(bal0.sub(bal1))
+                const toAsset: Escrow.AssetStruct = {
+                    assetId: 0,
+                    assetType: AssetTypes.NATIVE_ZEN,
+                    assetAddress: ethers.constants.AddressZero,
+                    amount: zen_amount_ethers
+                };
 
-        const buyerBalAfter = await ethers.provider.getBalance(buyer.address)
+                const fromAsset: Escrow.AssetStruct = {
+                    assetId: 0,
+                    assetType: AssetTypes.ERC20_TOKEN,
+                    assetAddress: tokens[index - 1].address,
+                    amount: erc20_amount_ethers
+                };
+                const create = await escrow.createTrade(buyer.address, fromAsset, [], toAsset, true, duration, { value: FLAT_FEES })
+                await expect(create).changeTokenBalance(tokens[index - 1], buyer, erc20_amount_ethers.mul(-1))
+                await expect(create).changeEtherBalance(buyer, zen_amount_ethers)
+                await expect(create).changeTokenBalance(tokens[index - 1], seller, erc20_amount_ethers.div(2))
+                await expect(create).changeTokenBalance(tokens[index - 1], other, erc20_amount_ethers.div(2))
+                await expect(create).changeEtherBalance(escrow, FLAT_FEES.sub(zen_amount_ethers))
+                await expect(create).to.not.reverted
+                await expect(create).to.emit(escrow, "TradeCreated")
+                await expect(create).to.emit(escrow, "TradeRemoved")
+                await expect(create).to.emit(escrow, "TradesMatched")
+                await expect(create).to.emit(escrow, "TradesPartialyMatched")
+                let bn = create.blockNumber!
+                const time = (await ethers.provider.getBlock(bn)).timestamp + duration
 
-        //check no trades remain
-        await expect((await escrow.tradesOf(seller.address)).length).to.be.equal(0)
-        await expect((await escrow.tradesOf(other.address)).length).to.be.equal(0)
-        await expect((await escrow.tradesOf(buyer.address)).length).to.be.equal(0)
-        await expect(await escrow.availableFees()).to.be.equal(FLAT_FEES.mul(3*numberOfTrades))
-        await expect(await ethers.provider.getBalance(escrow.address)).to.be.equal(FLAT_FEES.mul(3*numberOfTrades))
-        await expect(buyerBalAfter.sub(buyerBalBefore)).to.equal(total)
+                //add to arrays
+                times2.push(time)
+            }
+
+            const buyerBalAfter = await ethers.provider.getBalance(buyer.address)
+
+            //check no trades remain
+            await expect((await escrow.tradesOf(seller.address)).length).to.be.equal(0)
+            await expect((await escrow.tradesOf(other.address)).length).to.be.equal(0)
+            await expect((await escrow.tradesOf(buyer.address)).length).to.be.equal(0)
+            await expect(await escrow.availableFees()).to.be.equal(FLAT_FEES.mul(3 * numberOfTrades))
+            await expect(await ethers.provider.getBalance(escrow.address)).to.be.equal(FLAT_FEES.mul(3 * numberOfTrades))
+            await expect(buyerBalAfter.sub(buyerBalBefore)).to.equal(total)
 
         });
 
 
-        it(`Should handle ${numberOfTrades*3} multiple partial trades zen  => tokens (limit) and then match them`, async function () {
+        it(`Should handle ${numberOfTrades * 3} multiple partial trades zen  => tokens (limit) and then match them`, async function () {
             const { escrow, deployer, buyer, seller, other, fromTokenERC20, toTokenERC20, fromTokenERC721, toTokenERC721 }
                 = await loadFixture(deployEscrowFixture);
 
-            
+
             let times1 = []
             let times2 = []
             let tokens = []
 
             for (let index = 1; index <= numberOfTrades; index++) {
-                
-            const duration = 100
-            const zen_amount_ethers = ethers.utils.parseUnits(index.toString(), "gwei").mul(2)
-            const erc20_amount = (numberOfTrades - index + 1)*2
-            const erc20_amount_ethers = ethers.utils.parseEther(erc20_amount.toString())
-            const token = await createERC20(`token ${index}`, `TCK${index}`, (erc20_amount*2).toString());
-            // await tokenERC20SetUp(token, escrow, deployer, seller, erc20_amount)
-            let fromAsset: Escrow.AssetStruct = {
-                assetId: 0,
-                assetType: AssetTypes.NATIVE_ZEN,
-                assetAddress: ethers.constants.AddressZero,
-                amount: zen_amount_ethers
-            };
 
-            let toAsset: Escrow.AssetStruct = {
-                assetId: 0,
-                assetType: AssetTypes.ERC20_TOKEN,
-                assetAddress: token.address,
-                amount: erc20_amount_ethers
-            };
-            let create = await escrow.connect(seller).createTrade(seller.address, fromAsset, [], toAsset, true, duration, 
-                { value: zen_amount_ethers.add(FLAT_FEES) })
-            await expect(create).to.not.reverted
-            await expect(create).to.emit(escrow, "TradeCreated")
-            await expect(create).to.not.emit(escrow, "TradeRemoved")
-            await expect(create).to.not.emit(escrow, "TradesMatched")
-            await expect(create).to.not.emit(escrow, "TradesPartialyMatched")
-            await expect(create).changeEtherBalance(seller, zen_amount_ethers.add(FLAT_FEES).mul(-1))
-            await expect(create).changeEtherBalance(escrow, zen_amount_ethers.add(FLAT_FEES))
-            let bn = create.blockNumber!
-            let time = (await ethers.provider.getBlock(bn)).timestamp + duration
+                const duration = 100
+                const zen_amount_ethers = ethers.utils.parseUnits(index.toString(), "gwei").mul(2)
+                const erc20_amount = (numberOfTrades - index + 1) * 2
+                const erc20_amount_ethers = ethers.utils.parseEther(erc20_amount.toString())
+                const token = await createERC20(`token ${index}`, `TCK${index}`, (erc20_amount * 2).toString());
+                // await tokenERC20SetUp(token, escrow, deployer, seller, erc20_amount)
+                let fromAsset: Escrow.AssetStruct = {
+                    assetId: 0,
+                    assetType: AssetTypes.NATIVE_ZEN,
+                    assetAddress: ethers.constants.AddressZero,
+                    amount: zen_amount_ethers
+                };
 
-            //add to arrays
-            times1.push(time)
-            tokens.push(token)
-        }
+                let toAsset: Escrow.AssetStruct = {
+                    assetId: 0,
+                    assetType: AssetTypes.ERC20_TOKEN,
+                    assetAddress: token.address,
+                    amount: erc20_amount_ethers
+                };
+                let create = await escrow.connect(seller).createTrade(seller.address, fromAsset, [], toAsset, true, duration,
+                    { value: zen_amount_ethers.add(FLAT_FEES) })
+                await expect(create).to.not.reverted
+                await expect(create).to.emit(escrow, "TradeCreated")
+                await expect(create).to.not.emit(escrow, "TradeRemoved")
+                await expect(create).to.not.emit(escrow, "TradesMatched")
+                await expect(create).to.not.emit(escrow, "TradesPartialyMatched")
+                await expect(create).changeEtherBalance(seller, zen_amount_ethers.add(FLAT_FEES).mul(-1))
+                await expect(create).changeEtherBalance(escrow, zen_amount_ethers.add(FLAT_FEES))
+                let bn = create.blockNumber!
+                let time = (await ethers.provider.getBlock(bn)).timestamp + duration
 
-        const buyerBalBefore = await ethers.provider.getBalance(buyer.address)
-        const otherBalBefore = await ethers.provider.getBalance(other.address)
-        let total = ethers.BigNumber.from(0)
+                //add to arrays
+                times1.push(time)
+                tokens.push(token)
+            }
 
-        for (let index = 1; index <= numberOfTrades; index++) {
-                
-            const duration = 100
-            const zen_amount_ethers = ethers.utils.parseUnits(index.toString(), "gwei")
-            total = total.add(zen_amount_ethers)
-            const erc20_amount = numberOfTrades - index + 1
-            const erc20_amount_ethers = ethers.utils.parseEther(erc20_amount.toString())
-            const bal0 = await ethers.provider.getBalance(buyer.address)
-            await tokenERC20SetUp(tokens[index-1], escrow, deployer, buyer, erc20_amount)
-            await tokenERC20SetUp(tokens[index-1], escrow, deployer, other, erc20_amount)
-            const bal1 = await ethers.provider.getBalance(buyer.address)
-            total = total.sub(bal0.sub(bal1))
-            const toAsset: Escrow.AssetStruct = {
-                assetId: 0,
-                assetType: AssetTypes.NATIVE_ZEN,
-                assetAddress: ethers.constants.AddressZero,
-                amount: zen_amount_ethers
-            };
+            const buyerBalBefore = await ethers.provider.getBalance(buyer.address)
+            const otherBalBefore = await ethers.provider.getBalance(other.address)
+            let total = ethers.BigNumber.from(0)
 
-            const fromAsset: Escrow.AssetStruct = {
-                assetId: 0,
-                assetType: AssetTypes.ERC20_TOKEN,
-                assetAddress: tokens[index-1].address,
-                amount: erc20_amount_ethers
-            };
-            let create = await escrow.createTrade(buyer.address, fromAsset, [], toAsset, true, duration, { value: FLAT_FEES })
-            await expect(create).changeTokenBalance(tokens[index-1], buyer, erc20_amount_ethers.mul(-1))
-            await expect(create).changeEtherBalance(buyer, zen_amount_ethers)
-            await expect(create).changeTokenBalance(tokens[index-1], seller, erc20_amount_ethers)
-            await expect(create).changeTokenBalance(tokens[index-1], other, 0)
-            await expect(create).changeEtherBalance(escrow, FLAT_FEES.sub(zen_amount_ethers))
-            await expect(create).to.not.reverted
-            await expect(create).to.emit(escrow, "TradeCreated")
-            await expect(create).to.emit(escrow, "TradeRemoved")
-            await expect(create).to.not.emit(escrow, "TradesMatched")
-            await expect(create).to.emit(escrow, "TradesPartialyMatched")
-            let bn = create.blockNumber!
-            let time = (await ethers.provider.getBlock(bn)).timestamp + duration
+            for (let index = 1; index <= numberOfTrades; index++) {
 
-            //add to arrays
-            times2.push(time)
+                const duration = 100
+                const zen_amount_ethers = ethers.utils.parseUnits(index.toString(), "gwei")
+                total = total.add(zen_amount_ethers)
+                const erc20_amount = numberOfTrades - index + 1
+                const erc20_amount_ethers = ethers.utils.parseEther(erc20_amount.toString())
+                const bal0 = await ethers.provider.getBalance(buyer.address)
+                await tokenERC20SetUp(tokens[index - 1], escrow, deployer, buyer, erc20_amount)
+                await tokenERC20SetUp(tokens[index - 1], escrow, deployer, other, erc20_amount)
+                const bal1 = await ethers.provider.getBalance(buyer.address)
+                total = total.sub(bal0.sub(bal1))
+                const toAsset: Escrow.AssetStruct = {
+                    assetId: 0,
+                    assetType: AssetTypes.NATIVE_ZEN,
+                    assetAddress: ethers.constants.AddressZero,
+                    amount: zen_amount_ethers
+                };
 
-            create = await escrow.createTrade(other.address, fromAsset, [], toAsset, true, duration, { value: FLAT_FEES })
-            await expect(create).changeTokenBalance(tokens[index-1], buyer, 0)
-            await expect(create).changeEtherBalance(other, zen_amount_ethers)
-            await expect(create).changeTokenBalance(tokens[index-1], seller, erc20_amount_ethers)
-            await expect(create).changeTokenBalance(tokens[index-1], other, erc20_amount_ethers.mul(-1))
-            await expect(create).changeEtherBalance(escrow, FLAT_FEES.sub(zen_amount_ethers))
-            await expect(create).to.not.reverted
-            await expect(create).to.emit(escrow, "TradeCreated")
-            await expect(create).to.emit(escrow, "TradeRemoved")
-            await expect(create).to.emit(escrow, "TradesMatched")
-            await expect(create).to.not.emit(escrow, "TradesPartialyMatched")
-            bn = create.blockNumber!
-            time = (await ethers.provider.getBlock(bn)).timestamp + duration
+                const fromAsset: Escrow.AssetStruct = {
+                    assetId: 0,
+                    assetType: AssetTypes.ERC20_TOKEN,
+                    assetAddress: tokens[index - 1].address,
+                    amount: erc20_amount_ethers
+                };
+                let create = await escrow.createTrade(buyer.address, fromAsset, [], toAsset, true, duration, { value: FLAT_FEES })
+                await expect(create).changeTokenBalance(tokens[index - 1], buyer, erc20_amount_ethers.mul(-1))
+                await expect(create).changeEtherBalance(buyer, zen_amount_ethers)
+                await expect(create).changeTokenBalance(tokens[index - 1], seller, erc20_amount_ethers)
+                await expect(create).changeTokenBalance(tokens[index - 1], other, 0)
+                await expect(create).changeEtherBalance(escrow, FLAT_FEES.sub(zen_amount_ethers))
+                await expect(create).to.not.reverted
+                await expect(create).to.emit(escrow, "TradeCreated")
+                await expect(create).to.emit(escrow, "TradeRemoved")
+                await expect(create).to.not.emit(escrow, "TradesMatched")
+                await expect(create).to.emit(escrow, "TradesPartialyMatched")
+                let bn = create.blockNumber!
+                let time = (await ethers.provider.getBlock(bn)).timestamp + duration
 
-            //add to arrays
-            times2.push(time)
-        }
+                //add to arrays
+                times2.push(time)
 
-        const buyerBalAfter = await ethers.provider.getBalance(buyer.address)
-        const otherBalAfter = await ethers.provider.getBalance(buyer.address)
+                create = await escrow.createTrade(other.address, fromAsset, [], toAsset, true, duration, { value: FLAT_FEES })
+                await expect(create).changeTokenBalance(tokens[index - 1], buyer, 0)
+                await expect(create).changeEtherBalance(other, zen_amount_ethers)
+                await expect(create).changeTokenBalance(tokens[index - 1], seller, erc20_amount_ethers)
+                await expect(create).changeTokenBalance(tokens[index - 1], other, erc20_amount_ethers.mul(-1))
+                await expect(create).changeEtherBalance(escrow, FLAT_FEES.sub(zen_amount_ethers))
+                await expect(create).to.not.reverted
+                await expect(create).to.emit(escrow, "TradeCreated")
+                await expect(create).to.emit(escrow, "TradeRemoved")
+                await expect(create).to.emit(escrow, "TradesMatched")
+                await expect(create).to.not.emit(escrow, "TradesPartialyMatched")
+                bn = create.blockNumber!
+                time = (await ethers.provider.getBlock(bn)).timestamp + duration
 
-        //check no trades remain
-        await expect((await escrow.tradesOf(seller.address)).length).to.be.equal(0)
-        await expect((await escrow.tradesOf(other.address)).length).to.be.equal(0)
-        await expect((await escrow.tradesOf(buyer.address)).length).to.be.equal(0)
-        await expect(await escrow.availableFees()).to.be.equal(FLAT_FEES.mul(3*numberOfTrades))
-        await expect(await ethers.provider.getBalance(escrow.address)).to.be.equal(FLAT_FEES.mul(3*numberOfTrades))
-        await expect(buyerBalAfter.sub(buyerBalBefore)).to.equal(total)
-        await expect(otherBalAfter.sub(otherBalBefore)).to.equal(total)
-        for (let index = 0; index < tokens.length; index++) {
-            const tok = tokens[index];
-            const erc20_amount = numberOfTrades - index
-            const erc20_amount_ethers = ethers.utils.parseEther(erc20_amount.toString())
-            await expect(await tok.balanceOf(seller.address)).to.be.equal(erc20_amount_ethers.mul(2))
-        }
+                //add to arrays
+                times2.push(time)
+            }
+
+            const buyerBalAfter = await ethers.provider.getBalance(buyer.address)
+            const otherBalAfter = await ethers.provider.getBalance(buyer.address)
+
+            //check no trades remain
+            await expect((await escrow.tradesOf(seller.address)).length).to.be.equal(0)
+            await expect((await escrow.tradesOf(other.address)).length).to.be.equal(0)
+            await expect((await escrow.tradesOf(buyer.address)).length).to.be.equal(0)
+            await expect(await escrow.availableFees()).to.be.equal(FLAT_FEES.mul(3 * numberOfTrades))
+            await expect(await ethers.provider.getBalance(escrow.address)).to.be.equal(FLAT_FEES.mul(3 * numberOfTrades))
+            await expect(buyerBalAfter.sub(buyerBalBefore)).to.equal(total)
+            await expect(otherBalAfter.sub(otherBalBefore)).to.equal(total)
+            for (let index = 0; index < tokens.length; index++) {
+                const tok = tokens[index];
+                const erc20_amount = numberOfTrades - index
+                const erc20_amount_ethers = ethers.utils.parseEther(erc20_amount.toString())
+                await expect(await tok.balanceOf(seller.address)).to.be.equal(erc20_amount_ethers.mul(2))
+            }
 
         });
 
-        it(`Should handle ${numberOfTrades*3} multiple partial trades zen  => nfts (limit) and then match them`, async function () {
+        it(`Should handle ${numberOfTrades * 3} multiple partial trades zen  => nfts (limit) and then match them`, async function () {
             const { escrow, deployer, buyer, seller, other, fromTokenERC20, toTokenERC20, fromTokenERC721, toTokenERC721 }
                 = await loadFixture(deployEscrowFixture);
 
-            
+
             let times1 = []
             let times2 = []
             let nfts = []
 
             for (let index = 1; index <= numberOfTrades; index++) {
-                
-            const duration = 100
-            const zen_amount_ethers = ethers.utils.parseUnits(index.toString(), "gwei").mul(2)
-            const erc721_amount = (numberOfTrades - index + 1)*2
-            const nft = await createERC721(`nft ${index}`, `TCK${index}`);
-            // await tokenERC20SetUp(token, escrow, deployer, seller, erc20_amount)
-            let fromAsset: Escrow.AssetStruct = {
-                assetId: 0,
-                assetType: AssetTypes.NATIVE_ZEN,
-                assetAddress: ethers.constants.AddressZero,
-                amount: zen_amount_ethers
-            };
 
-            let toAsset: Escrow.AssetStruct = {
-                assetId: 0,
-                assetType: AssetTypes.ERC721_NFT,
-                assetAddress: nft.address,
-                amount: erc721_amount
-            };
-            let create = await escrow.connect(seller).createTrade(seller.address, fromAsset, [], toAsset, true, duration, 
-                { value: zen_amount_ethers.add(FLAT_FEES) })
-            await expect(create).to.not.reverted
-            await expect(create).to.emit(escrow, "TradeCreated")
-            await expect(create).to.not.emit(escrow, "TradeRemoved")
-            await expect(create).to.not.emit(escrow, "TradesMatched")
-            await expect(create).to.not.emit(escrow, "TradesPartialyMatched")
-            await expect(create).changeEtherBalance(seller, zen_amount_ethers.add(FLAT_FEES).mul(-1))
-            await expect(create).changeEtherBalance(escrow, zen_amount_ethers.add(FLAT_FEES))
-            let bn = create.blockNumber!
-            let time = (await ethers.provider.getBlock(bn)).timestamp + duration
+                const duration = 100
+                const zen_amount_ethers = ethers.utils.parseUnits(index.toString(), "gwei").mul(2)
+                const erc721_amount = (numberOfTrades - index + 1) * 2
+                const nft = await createERC721(`nft ${index}`, `TCK${index}`);
+                // await tokenERC20SetUp(token, escrow, deployer, seller, erc20_amount)
+                let fromAsset: Escrow.AssetStruct = {
+                    assetId: 0,
+                    assetType: AssetTypes.NATIVE_ZEN,
+                    assetAddress: ethers.constants.AddressZero,
+                    amount: zen_amount_ethers
+                };
 
-            //add to arrays
-            times1.push(time)
-            nfts.push(nft)
-        }
+                let toAsset: Escrow.AssetStruct = {
+                    assetId: 0,
+                    assetType: AssetTypes.ERC721_NFT,
+                    assetAddress: nft.address,
+                    amount: erc721_amount
+                };
+                let create = await escrow.connect(seller).createTrade(seller.address, fromAsset, [], toAsset, true, duration,
+                    { value: zen_amount_ethers.add(FLAT_FEES) })
+                await expect(create).to.not.reverted
+                await expect(create).to.emit(escrow, "TradeCreated")
+                await expect(create).to.not.emit(escrow, "TradeRemoved")
+                await expect(create).to.not.emit(escrow, "TradesMatched")
+                await expect(create).to.not.emit(escrow, "TradesPartialyMatched")
+                await expect(create).changeEtherBalance(seller, zen_amount_ethers.add(FLAT_FEES).mul(-1))
+                await expect(create).changeEtherBalance(escrow, zen_amount_ethers.add(FLAT_FEES))
+                let bn = create.blockNumber!
+                let time = (await ethers.provider.getBlock(bn)).timestamp + duration
 
-        const buyerBalBefore = await ethers.provider.getBalance(buyer.address)
-        const otherBalBefore = await ethers.provider.getBalance(other.address)
-        let total = ethers.BigNumber.from(0)
+                //add to arrays
+                times1.push(time)
+                nfts.push(nft)
+            }
 
-        for (let index = 1; index <= numberOfTrades; index++) {
-                
-            const duration = 100
-            const zen_amount_ethers = ethers.utils.parseUnits(index.toString(), "gwei")
-            total = total.add(zen_amount_ethers)
-            const erc721_amount = numberOfTrades - index + 1
-            const bal0 = await ethers.provider.getBalance(buyer.address)
-            const tokIds1 = await tokenERC721SetUp(nfts[index-1], escrow, deployer, buyer, erc721_amount)
-            const tokIds2 =await tokenERC721SetUp(nfts[index-1], escrow, deployer, other, erc721_amount)
-            const bal1 = await ethers.provider.getBalance(buyer.address)
-            total = total.sub(bal0.sub(bal1))
-            const toAsset: Escrow.AssetStruct = {
-                assetId: 0,
-                assetType: AssetTypes.NATIVE_ZEN,
-                assetAddress: ethers.constants.AddressZero,
-                amount: zen_amount_ethers
-            };
+            const buyerBalBefore = await ethers.provider.getBalance(buyer.address)
+            const otherBalBefore = await ethers.provider.getBalance(other.address)
+            let total = ethers.BigNumber.from(0)
 
-            const fromAsset: Escrow.AssetStruct = {
-                assetId: 0,
-                assetType: AssetTypes.ERC721_NFT,
-                assetAddress: nfts[index-1].address,
-                amount: erc721_amount
-            };
-            let create = await escrow.createTrade(buyer.address, fromAsset, tokIds1, toAsset, true, duration, { value: FLAT_FEES })
-            await expect(create).changeTokenBalance(nfts[index-1], buyer, -erc721_amount)
-            await expect(create).changeEtherBalance(buyer, zen_amount_ethers)
-            await expect(create).changeTokenBalance(nfts[index-1], seller, erc721_amount)
-            await expect(create).changeTokenBalance(nfts[index-1], other, 0)
-            await expect(create).changeEtherBalance(escrow, FLAT_FEES.sub(zen_amount_ethers))
-            await expect(create).to.not.reverted
-            await expect(create).to.emit(escrow, "TradeCreated")
-            await expect(create).to.emit(escrow, "TradeRemoved")
-            await expect(create).to.not.emit(escrow, "TradesMatched")
-            await expect(create).to.emit(escrow, "TradesPartialyMatched")
-            let bn = create.blockNumber!
-            let time = (await ethers.provider.getBlock(bn)).timestamp + duration
+            for (let index = 1; index <= numberOfTrades; index++) {
 
-            //add to arrays
-            times2.push(time)
+                const duration = 100
+                const zen_amount_ethers = ethers.utils.parseUnits(index.toString(), "gwei")
+                total = total.add(zen_amount_ethers)
+                const erc721_amount = numberOfTrades - index + 1
+                const bal0 = await ethers.provider.getBalance(buyer.address)
+                const tokIds1 = await tokenERC721SetUp(nfts[index - 1], escrow, deployer, buyer, erc721_amount)
+                const tokIds2 = await tokenERC721SetUp(nfts[index - 1], escrow, deployer, other, erc721_amount)
+                const bal1 = await ethers.provider.getBalance(buyer.address)
+                total = total.sub(bal0.sub(bal1))
+                const toAsset: Escrow.AssetStruct = {
+                    assetId: 0,
+                    assetType: AssetTypes.NATIVE_ZEN,
+                    assetAddress: ethers.constants.AddressZero,
+                    amount: zen_amount_ethers
+                };
 
-            create = await escrow.createTrade(other.address, fromAsset, tokIds2, toAsset, true, duration, { value: FLAT_FEES })
-            await expect(create).changeTokenBalance(nfts[index-1], buyer, 0)
-            await expect(create).changeEtherBalance(other, zen_amount_ethers)
-            await expect(create).changeTokenBalance(nfts[index-1], seller, erc721_amount)
-            await expect(create).changeTokenBalance(nfts[index-1], other, -erc721_amount)
-            await expect(create).changeEtherBalance(escrow, FLAT_FEES.sub(zen_amount_ethers))
-            await expect(create).to.not.reverted
-            await expect(create).to.emit(escrow, "TradeCreated")
-            await expect(create).to.emit(escrow, "TradeRemoved")
-            await expect(create).to.emit(escrow, "TradesMatched")
-            await expect(create).to.not.emit(escrow, "TradesPartialyMatched")
-            bn = create.blockNumber!
-            time = (await ethers.provider.getBlock(bn)).timestamp + duration
+                const fromAsset: Escrow.AssetStruct = {
+                    assetId: 0,
+                    assetType: AssetTypes.ERC721_NFT,
+                    assetAddress: nfts[index - 1].address,
+                    amount: erc721_amount
+                };
+                let create = await escrow.createTrade(buyer.address, fromAsset, tokIds1, toAsset, true, duration, { value: FLAT_FEES })
+                await expect(create).changeTokenBalance(nfts[index - 1], buyer, -erc721_amount)
+                await expect(create).changeEtherBalance(buyer, zen_amount_ethers)
+                await expect(create).changeTokenBalance(nfts[index - 1], seller, erc721_amount)
+                await expect(create).changeTokenBalance(nfts[index - 1], other, 0)
+                await expect(create).changeEtherBalance(escrow, FLAT_FEES.sub(zen_amount_ethers))
+                await expect(create).to.not.reverted
+                await expect(create).to.emit(escrow, "TradeCreated")
+                await expect(create).to.emit(escrow, "TradeRemoved")
+                await expect(create).to.not.emit(escrow, "TradesMatched")
+                await expect(create).to.emit(escrow, "TradesPartialyMatched")
+                let bn = create.blockNumber!
+                let time = (await ethers.provider.getBlock(bn)).timestamp + duration
 
-            //add to arrays
-            times2.push(time)
-        }
+                //add to arrays
+                times2.push(time)
 
-        const buyerBalAfter = await ethers.provider.getBalance(buyer.address)
-        const otherBalAfter = await ethers.provider.getBalance(buyer.address)
+                create = await escrow.createTrade(other.address, fromAsset, tokIds2, toAsset, true, duration, { value: FLAT_FEES })
+                await expect(create).changeTokenBalance(nfts[index - 1], buyer, 0)
+                await expect(create).changeEtherBalance(other, zen_amount_ethers)
+                await expect(create).changeTokenBalance(nfts[index - 1], seller, erc721_amount)
+                await expect(create).changeTokenBalance(nfts[index - 1], other, -erc721_amount)
+                await expect(create).changeEtherBalance(escrow, FLAT_FEES.sub(zen_amount_ethers))
+                await expect(create).to.not.reverted
+                await expect(create).to.emit(escrow, "TradeCreated")
+                await expect(create).to.emit(escrow, "TradeRemoved")
+                await expect(create).to.emit(escrow, "TradesMatched")
+                await expect(create).to.not.emit(escrow, "TradesPartialyMatched")
+                bn = create.blockNumber!
+                time = (await ethers.provider.getBlock(bn)).timestamp + duration
 
-        //check no trades remain
-        await expect((await escrow.tradesOf(seller.address)).length).to.be.equal(0)
-        await expect((await escrow.tradesOf(other.address)).length).to.be.equal(0)
-        await expect((await escrow.tradesOf(buyer.address)).length).to.be.equal(0)
-        await expect((await escrow.getTrades()).length).to.be.equal(0)
-        await expect(await escrow.availableFees()).to.be.equal(FLAT_FEES.mul(3*numberOfTrades))
-        await expect(await ethers.provider.getBalance(escrow.address)).to.be.equal(FLAT_FEES.mul(3*numberOfTrades))
-        await expect(buyerBalAfter.sub(buyerBalBefore)).to.equal(total)
-        await expect(otherBalAfter.sub(otherBalBefore)).to.equal(total)
-        for (let index = 0; index < nfts.length; index++) {
-            const tok = nfts[index];
-            const erc721_amount = numberOfTrades - index
-            await expect(await tok.balanceOf(seller.address)).to.be.equal(erc721_amount*2)
-        }
+                //add to arrays
+                times2.push(time)
+            }
+
+            const buyerBalAfter = await ethers.provider.getBalance(buyer.address)
+            const otherBalAfter = await ethers.provider.getBalance(buyer.address)
+
+            //check no trades remain
+            await expect((await escrow.tradesOf(seller.address)).length).to.be.equal(0)
+            await expect((await escrow.tradesOf(other.address)).length).to.be.equal(0)
+            await expect((await escrow.tradesOf(buyer.address)).length).to.be.equal(0)
+            await expect((await escrow.getTrades()).length).to.be.equal(0)
+            await expect(await escrow.availableFees()).to.be.equal(FLAT_FEES.mul(3 * numberOfTrades))
+            await expect(await ethers.provider.getBalance(escrow.address)).to.be.equal(FLAT_FEES.mul(3 * numberOfTrades))
+            await expect(buyerBalAfter.sub(buyerBalBefore)).to.equal(total)
+            await expect(otherBalAfter.sub(otherBalBefore)).to.equal(total)
+            for (let index = 0; index < nfts.length; index++) {
+                const tok = nfts[index];
+                const erc721_amount = numberOfTrades - index
+                await expect(await tok.balanceOf(seller.address)).to.be.equal(erc721_amount * 2)
+            }
 
         });
     });
