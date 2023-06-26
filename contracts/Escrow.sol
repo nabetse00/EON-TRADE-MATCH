@@ -411,11 +411,11 @@ contract Escrow is ERC721Holder {
             // update from asset
             t1.fromAsset.amount -= burnT1From;
         } else {
-            executeVirtual(t1, amountT);
+            executeVirtual(t1, burnT2From);
         }
 
         // update virtual trade
-        t.toAsset.amount -= amountT;
+        // t.toAsset.amount -= amountT;
         // alreay done !
         // t.fromAsset.amount -= burnT1From;
 
