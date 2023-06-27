@@ -83,6 +83,16 @@ REPORT_GAS = 'yes'
 NFT_SERVER_URL="http://someurl.com"
 ```
 
+Configure hardhat to mine blocks at intervals, uncoment:
+```ts
+// line 38:
+      mining: {
+         auto: false,
+         interval: [3000, 6000]
+       },
+// ...
+```
+
 Run a hardhat localnet node 
 
 ```console
@@ -125,9 +135,9 @@ VITE_ERC721_MOCK_ADDRESS_2=0x2D0E17B66F19F33fCB0447D0A48fC7BF57528783
 ```
 
 A demo web site is in github pages at:
-<URL HERE>
+[https://nabetse00.github.io/EON-TRADE-MATCH/#/](https://nabetse00.github.io/EON-TRADE-MATCH/#/)
 
-You can also run production preview with:
+You can also run production preview form your computer with:
 
 ```console
 \frontend> npm run build
@@ -142,6 +152,20 @@ VITE_ERC20_MOCK_ADDRESS_B=0x6ab364d740E14A385b3B9F487D5973b31D4e200C
 VITE_ERC721_MOCK_ADDRESS_1=0x79f7Fc14E58EB650C4742669972aaa14ecA0f715
 VITE_ERC721_MOCK_ADDRESS_2=0x2D0E17B66F19F33fCB0447D0A48fC7BF57528783 
 ```
+And broswse to http://localhost:4173/EON-TRADE-MATCH/ or similar.
+
+
+## DEMO
+
+- demo web site
+https://nabetse00.github.io/EON-TRADE-MATCH/#/
+![screen shot 1](./images/screen1.png)
+![screen shot 2](./images/screen2.png)
+![screen shot 3](./images/screen3.png)
+
+- video 
+[YT URL HERE]
+
 
 
 
