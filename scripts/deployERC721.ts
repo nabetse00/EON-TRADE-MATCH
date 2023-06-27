@@ -1,4 +1,10 @@
 import { ethers } from "hardhat";
+import dotenv from "dotenv"
+
+dotenv.config({ path: '../' })
+
+const NFT_SERVER_URL = process.env.NFT_SERVER_URL
+const BASE_URL = NFT_SERVER_URL? NFT_SERVER_URL:"https://localhost:5173"
 
 async function main() {
   const [deployer] = await ethers.getSigners();
@@ -16,7 +22,7 @@ async function main() {
   );
 
   for (let index = 0; index < 5; index++) {
-    const res = await nft.safeMint(deployer.address, `https://localhost:5173/nft0-item-${index}.json`)
+    const res = await nft.safeMint(deployer.address, `${BASE_URL}/nft0-item-${index}.json`)
     const log = await res.wait()
     console.log(`nft ${index} on block ${log.blockNumber}`)
     const tokid = await nft.tokenOfOwnerByIndex(deployer.address, index)
@@ -44,8 +50,6 @@ async function main() {
   }
 }
 
-// We recommend this pattern to be able to use async/await everywhere
-// and properly handle errors.
 main().catch((error) => {
   console.error(error);
   process.exitCode = 1;

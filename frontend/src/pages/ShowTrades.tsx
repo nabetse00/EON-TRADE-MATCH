@@ -1,15 +1,15 @@
-import { Alert, Button, Input, InputRef, Space, Spin, Table, Tag, Typography } from "antd";
+import { Alert, Button, Input, InputRef, Space, Spin, Switch, Table, Tag, Typography } from "antd";
 import { ColumnsType } from "antd/es/table";
 import { useContractRead } from "wagmi";
 import { AssetContract, ESCROW_ABI, ESCROW_ADDRESS, Trade } from "../models/escrow";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { formatEther } from "viem";
 import { AssetTypes } from "../models/assets";
 import { ColumnType, FilterConfirmProps } from "antd/es/table/interface";
 import { SearchOutlined } from "@ant-design/icons";
 import Highlighter from 'react-highlight-words'
 
-const { Title, Paragraph} = Typography;
+const { Title, Paragraph } = Typography;
 type DataIndex = keyof Trade
 
 
@@ -44,6 +44,9 @@ export function RenderAssetAmount(props: { asset: AssetContract }) {
 export default function ShowTrades() {
 
   const [tradesData, setTradeData] = useState<Trade[]>()
+  const [showVirtual, setShowVirtual] = useState<boolean>(false)
+
+
 
   const { data: trades, isError: isErrorTrade, isLoading: isLoadingTrade } = useContractRead({
     address: ESCROW_ADDRESS,
@@ -69,11 +72,31 @@ export default function ShowTrades() {
     const trades: Trade[] = []
     for (let index = 0; index < data.length; index++) {
       const element = data[index];
+      // if(element.owner != ESCROW_ADDRESS){
       element.key = element.tradeId.toString()
       trades.push(element)
+      // }
     }
     setTradeData(trades)
   }
+
+  useEffect(
+    () => {
+      if (trades) {
+        if (!showVirtual) {
+          console.log("filter")
+          const newTrades = trades!.filter(
+            v => (v.owner != ESCROW_ADDRESS)
+          )
+          setTradeData(newTrades)
+        } else {
+          const newTrades = trades.filter(_v => true);
+          setTradeData(newTrades)
+        }
+      }
+    },
+    [showVirtual, trades]
+  )
 
   function formatAddressLink(addr: string, size: number = 0) {
     let a: string;
@@ -117,7 +140,7 @@ export default function ShowTrades() {
     confirm()
   };
 
-  const getColumnSearchProps = (dataIndex: DataIndex, property?:string): ColumnType<Trade> => ({
+  const getColumnSearchProps = (dataIndex: DataIndex, property?: string): ColumnType<Trade> => ({
     filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters, close }) => (
       <div style={{ padding: 8 }} onKeyDown={(e) => e.stopPropagation()}>
         <Input
@@ -162,10 +185,11 @@ export default function ShowTrades() {
     ),
     onFilter: (value, record) => {
       // @ts-ignore: Object is possibly 'null'.
-      const v = property? record[dataIndex][property] : record[dataIndex] 
+      const v = property ? record[dataIndex][property] : record[dataIndex]
       return v.toString()
         .toLowerCase()
-        .includes((value as string).toLowerCase()) },
+        .includes((value as string).toLowerCase())
+    },
     onFilterDropdownOpenChange: (visible) => {
       if (visible) {
         setTimeout(() => searchInput.current?.select(), 100);
@@ -201,7 +225,7 @@ export default function ShowTrades() {
         showTitle: false,
       },
       ...getColumnSearchProps('owner'),
-      render: (addr: string) => <>{formatAddressLink(addr)}</>
+      render: (addr: string) => <>{(addr == ESCROW_ADDRESS) ? <Tag color={"pink"}>VIRTUAL TRADE</Tag>: formatAddressLink(addr)}</>
     },
 
     {
@@ -240,7 +264,7 @@ export default function ShowTrades() {
         render: (asset: AssetContract) => <>
           {asset.assetType == AssetTypes.NATIVE_ZEN && <Tag color={"red"}>NATIVE ZEN</Tag>}
           {asset.assetType == AssetTypes.ERC20_TOKEN && <Tag color={"blue"}>TOKENS</Tag>}
-          {asset.assetType == AssetTypes.ERC721_NFT && <Tag color={"geekblue"}>NFTs</Tag>}
+          {asset.assetType == AssetTypes.ERC721_NFT && <Tag color={"green"}>NFTs</Tag>}
         </>
       },
 
@@ -289,7 +313,7 @@ export default function ShowTrades() {
           render: (asset: AssetContract) => <>
             {asset.assetType == AssetTypes.NATIVE_ZEN && <Tag color={"red"}>NATIVE ZEN</Tag>}
             {asset.assetType == AssetTypes.ERC20_TOKEN && <Tag color={"blue"}>TOKENS</Tag>}
-            {asset.assetType == AssetTypes.ERC721_NFT && <Tag color={"geekblue"}>NFTs</Tag>}
+            {asset.assetType == AssetTypes.ERC721_NFT && <Tag color={"green"}>NFTs</Tag>}
           </>
         },
 
@@ -320,7 +344,7 @@ export default function ShowTrades() {
       title: "Unlock Date",
       dataIndex: 'expireTime',
       key: 'expireTime',
-      render: (exp: bigint) => <>{formatDate(exp)}</>
+      render: (exp: bigint) => <>{(Number(exp) == 0)? "NONE" :formatDate(exp)}</>
     }
 
   ]
@@ -331,6 +355,10 @@ export default function ShowTrades() {
       <Typography>
         <Title>Escrow Contract Trades</Title>
         <Paragraph>Address: {formatAddressLink(ESCROW_ADDRESS, 0)}</Paragraph>
+        <Paragraph>
+          <Switch style={{marginRight:"1rem"}} defaultChecked={showVirtual} onChange={() => setShowVirtual(!showVirtual)} />
+          Show Virtual Trades
+        </Paragraph>
       </Typography>
 
       {isLoadingTrade && <Spin key={"spin"} />}

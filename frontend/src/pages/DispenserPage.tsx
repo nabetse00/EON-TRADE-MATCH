@@ -65,6 +65,9 @@ export default function DispenserPage() {
                     <Paragraph>
                         Mock ERC20 dispenser. Sends 10 Tokens A (Zen unit)
                     </Paragraph>
+                    <Paragraph>
+                        {ERC20_MOCK_ADDRESS_A}
+                    </Paragraph>
                     {writeA &&
                         <Button type='primary' onClick={() => writeA()}>
                             Dispense Token A
@@ -78,6 +81,9 @@ export default function DispenserPage() {
                 <Card title={`ERC20 Mock token B dispenser`}>
                     <Paragraph>
                         Mock ERC20 dispenser. Sends 10 Tokens B (Zen unit)
+                    </Paragraph>
+                    <Paragraph>
+                        {ERC20_MOCK_ADDRESS_B}
                     </Paragraph>
                     {writeB &&
                         <Button type='primary' onClick={() => writeB()}>
@@ -94,6 +100,9 @@ export default function DispenserPage() {
                     <Paragraph>
                         Mock ERC721 dispenser. Sends 1 NFT A
                     </Paragraph>
+                    <Paragraph>
+                        {ERC721_MOCK_ADDRESS_1}
+                    </Paragraph>
                     {writeNFT1 &&
                         <Button type='primary' onClick={() => writeNFT1()}>
                             Dispense NFT A
@@ -107,6 +116,9 @@ export default function DispenserPage() {
                 <Card title={`Mock ERC721 -NFT B- dispenser`}>
                     <Paragraph>
                         Mock ERC721 dispenser. Sends 1 NFT B
+                    </Paragraph>
+                    <Paragraph>
+                        {ERC721_MOCK_ADDRESS_2}
                     </Paragraph>
                     {writeNFT2 &&
                         <Button type='primary' onClick={() => writeNFT2()}>

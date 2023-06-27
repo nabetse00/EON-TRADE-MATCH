@@ -1,10 +1,14 @@
 import { ethers } from "hardhat";
 import { Escrow } from "../typechain-types/contracts";
+import dotenv from "dotenv"
+
+dotenv.config({ path: '../' })
 
 const ESCROW_CONTRACT = "Escrow"
 const UNLOCK_TIME = 100
 const FLAT_FEES = ethers.utils.parseUnits("1.0", "szabo")
-const BASE_URL = "https://localhost:5173"
+const NFT_SERVER_URL = process.env.NFT_SERVER_URL
+const BASE_URL = NFT_SERVER_URL? NFT_SERVER_URL:"https://localhost:5173"
 
 enum AssetTypes {
   NATIVE_ZEN,
@@ -204,58 +208,51 @@ async function main() {
   create = await escrow.connect(user2).createTrade(user2.address, fromAsset, [], toAsset, true, duration, { value: FLAT_FEES })
   await create.wait()
 
-    // tokenA => ZEN
-    fromAsset.assetAddress = tokenA.address
-    fromAsset.amount = erc20_amount1
-    toAsset.assetAddress = ethers.constants.AddressZero
-    toAsset.assetType = AssetTypes.NATIVE_ZEN
-    toAsset.amount = zen_amount4
-    
-    create = await escrow.connect(user2).createTrade(user2.address, fromAsset, [], toAsset, true, duration, { value: FLAT_FEES })
-    await create.wait()
+  // tokenA => ZEN
+  fromAsset.assetAddress = tokenA.address
+  fromAsset.amount = erc20_amount1
+  toAsset.assetAddress = ethers.constants.AddressZero
+  toAsset.assetType = AssetTypes.NATIVE_ZEN
+  toAsset.amount = zen_amount4
 
-    //NFTs
-    const toksIDs = []
-    for (let index = 0; index < 2; index++) {
-      let res = await nft1.connect(user1).dispense(`${BASE_URL}/nft0-item-${index}.json`)
-      let log = await res.wait()
-      console.log(`user 1 nft1 ${index} on block ${log.blockNumber}`)
-      let tokid = await nft1.connect(user1).tokenOfOwnerByIndex(user1.address, index)
-      console.log(`nft1 tok id: ${index}: ${tokid.toBigInt()}`)
-      res = await nft1.connect(user1).approve(escrow.address,tokid)
-      await res.wait()
-      toksIDs.push(tokid)
+  create = await escrow.connect(user2).createTrade(user2.address, fromAsset, [], toAsset, true, duration, { value: FLAT_FEES })
+  await create.wait()
 
-      res = await nft2.connect(user1).dispense(`${BASE_URL}/nft1-item-${index}.json`)
-      log = await res.wait()
-      console.log(`user 1 nft2 ${index} on block ${log.blockNumber}`)
-      tokid = await nft2.connect(user1).tokenOfOwnerByIndex(user1.address, index)
-      console.log(`nft1 tok id: ${index}: ${tokid.toBigInt()}`)
-      res = await nft2.connect(user1).approve(escrow.address,tokid)
-      await res.wait()
-    }
+  //NFTs
+  const toksIDs = []
+  for (let index = 0; index < 2; index++) {
+    let res = await nft1.connect(user1).dispense(`${BASE_URL}/nft0-item-${index}.json`)
+    let log = await res.wait()
+    console.log(`user 1 nft1 ${index} on block ${log.blockNumber}`)
+    let tokid = await nft1.connect(user1).tokenOfOwnerByIndex(user1.address, index)
+    console.log(`nft1 tok id: ${index}: ${tokid.toBigInt()}`)
+    res = await nft1.connect(user1).approve(escrow.address, tokid)
+    await res.wait()
+    toksIDs.push(tokid)
 
-    // 2 nft1 => 2 nft2
-    fromAsset.assetType = AssetTypes.ERC721_NFT
-    fromAsset.amount = 2
-    fromAsset.assetAddress = nft1.address
+    res = await nft2.connect(user1).dispense(`${BASE_URL}/nft1-item-${index}.json`)
+    log = await res.wait()
+    console.log(`user 1 nft2 ${index} on block ${log.blockNumber}`)
+    tokid = await nft2.connect(user1).tokenOfOwnerByIndex(user1.address, index)
+    console.log(`nft1 tok id: ${index}: ${tokid.toBigInt()}`)
+    res = await nft2.connect(user1).approve(escrow.address, tokid)
+    await res.wait()
+  }
 
-    toAsset.assetType = AssetTypes.ERC721_NFT
-    toAsset.amount = 2
-    toAsset.assetAddress = nft2.address
+  // 2 nft1 => 2 nft2
+  fromAsset.assetType = AssetTypes.ERC721_NFT
+  fromAsset.amount = 2
+  fromAsset.assetAddress = nft1.address
 
-    create = await escrow.connect(user2).createTrade(user1.address, fromAsset, toksIDs, toAsset, true, duration, { value: FLAT_FEES })
-    const res = await create.wait()
-    console.log(`create NFT trade status: ${res.status}`)
+  toAsset.assetType = AssetTypes.ERC721_NFT
+  toAsset.amount = 2
+  toAsset.assetAddress = nft2.address
 
-
+  create = await escrow.connect(user2).createTrade(user1.address, fromAsset, toksIDs, toAsset, true, duration, { value: FLAT_FEES })
+  const res = await create.wait()
+  console.log(`create NFT trade status: ${res.status}`)
 
   console.log("END DEPLOY TEST DATA")
-
-
-
-
-
 
 }
 

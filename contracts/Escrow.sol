@@ -47,12 +47,13 @@ contract Escrow is ERC721Holder {
     address public administrator;
 
     bool internal locked;
-    // address[] public sellers;
     uint[] public tradesIds;
-    // mapping(address => uint256[]) sellersTrades;
     mapping(uint256 => Trade) public trades;
-    mapping(uint256 => uint256[]) public nftData; // maps AssetId to nftIds
+    mapping(uint256 => uint256[]) public nftData;
+    // maps AssetId to nftIds
     mapping(uint256 => uint256[2]) public virtualTradeData;
+    // maps virtual trades to a pair of other trades
+
     uint256 public lastTradeIndex;
     uint256 public lastAssetIndex;
 
@@ -66,7 +67,6 @@ contract Escrow is ERC721Holder {
     event TradeRemoved(Trade t);
 
     // Modifiers
-
     modifier onlyOwner(address sender) {
         require(sender == administrator, "Only owner is allowed");
         _;
@@ -225,6 +225,15 @@ contract Escrow is ERC721Holder {
         }
     }
 
+    /**
+     * @notice Function that creates a new trades (from user and virtuals trades if aplicable) and tries to match it.
+     * @param owner_ trade owner
+     * @param fromAsset_  asset you give
+     * @param fromAssetTokensIds  nfts an array of tokenIds (empty if asset is not an nft)
+     * @param toAsset_ asset to get
+     * @param allowPartial_ Allow partial trades
+     * @param duration trade lock duration must be >= minLockTime
+     */
     function createTrade(
         address owner_,
         Asset memory fromAsset_,
@@ -298,7 +307,7 @@ contract Escrow is ERC721Holder {
     }
 
     /**
-     * @notice Trade a is only in trade mapping it will only be added if returns true
+     * @notice Trade a is only in trade mapping it will only be added if trade remains after match
      * @param a Trade in mapping
      */
     function matchTrade(Trade storage a) internal {
@@ -385,8 +394,6 @@ contract Escrow is ERC721Holder {
         Trade storage t1 = trades[td[0]];
         Trade storage t2 = trades[td[1]];
 
-        // uint256 t1ToAmount = t1.toAsset.amount;
-        // uint256 t2ToAmount = t2.toAsset.amount;
 
         uint256 burnT2From = _amount(t2.fromAsset).mulDiv(
             amountT,
@@ -414,9 +421,8 @@ contract Escrow is ERC721Holder {
             executeVirtual(t1, burnT2From);
         }
 
-        // update virtual trade
+        // update virtual trade alreay done when using transfer
         // t.toAsset.amount -= amountT;
-        // alreay done !
         // t.fromAsset.amount -= burnT1From;
 
         // mark to delete if needed
@@ -473,6 +479,7 @@ contract Escrow is ERC721Holder {
     }
 
     function cleanTrades() internal {
+        // first loop remove trades marked
         for (uint256 i = tradesIds.length; i > 0; i--) {
             Trade storage t = trades[tradesIds[i - 1]];
             if (t.owner == address(0)) {
@@ -480,6 +487,7 @@ contract Escrow is ERC721Holder {
             }
         }
 
+        // second loop remove related remaining trades 
         bool loop = false;
         do {
             loop = false;
@@ -622,6 +630,7 @@ contract Escrow is ERC721Holder {
         emit TradeCreated(t);
     }
 
+    // remove from mapping only
     function removeTrade(Trade storage t) internal {
         emit TradeRemoved(t);
         // mark to remove
@@ -630,6 +639,7 @@ contract Escrow is ERC721Holder {
         delete trades[t.tradeId];
     }
 
+    // remove from mapping and array 
     function removeTrade(Trade storage t, uint256 index) internal {
         emit TradeRemoved(t);
         // mark to remove
@@ -641,6 +651,7 @@ contract Escrow is ERC721Holder {
         tradesIds.pop();
     }
 
+    // internal transfer function
     function transferAssetTo(
         Asset storage a,
         address to,
@@ -713,6 +724,9 @@ contract Escrow is ERC721Holder {
     }
 
     function transferNative(address payable to, uint256 amount) internal {
+        // safe transfer only 23000 gas
+        // all functions using transfer are reentrant guarded 
+        // with noReentrant modifier
         to.transfer(amount);
     }
 
@@ -739,6 +753,7 @@ contract Escrow is ERC721Holder {
         return lastAssetIndex++;
     }
 
+    // add 18 decimals to ERC721 amouts 
     function _amount(Asset memory asset) internal pure returns (uint256) {
         if (asset.assetType == AssetTypes.ERC721_NFT) {
             return (asset.amount * DECIMALS);

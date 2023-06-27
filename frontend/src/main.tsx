@@ -18,6 +18,7 @@ import CreateTrade from './pages/CreateTrade.tsx';
 import Dispenser from './pages/DispenserPage.tsx';
 import WithdrawTradesPage from './pages/WithdrawTradesPage.tsx';
 import HomePage from './pages/HomePage.tsx';
+import Flow from './pages/EyeCandyPage.tsx';
 
 export const eonGobi = {
   id: 1663,
@@ -76,6 +77,10 @@ const router = createBrowserRouter([
     {
       path: "/dispenser",
       element: <Dispenser />,
+    },
+    {
+      path: "/eyecandy",
+      element: <Flow />,
     },
 
     ]

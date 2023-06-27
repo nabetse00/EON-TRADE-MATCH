@@ -7,7 +7,7 @@ import { geekblue } from '@ant-design/colors';
 import logo from "./assets/eon-escrow-logo.png"
 
 
-import { CreditCardOutlined, HomeOutlined, LogoutOutlined, MenuFoldOutlined, MenuUnfoldOutlined, ShoppingCartOutlined, UploadOutlined } from '@ant-design/icons';
+import { CreditCardOutlined, DotChartOutlined, HomeOutlined, LogoutOutlined, MenuFoldOutlined, MenuUnfoldOutlined, ShoppingCartOutlined, UploadOutlined } from '@ant-design/icons';
 import { Button, Col, Layout, Menu, Row, Space, Switch } from 'antd';
 
 
@@ -24,6 +24,7 @@ import RequireConnection from './components/RequireConnection';
 import { ESCROW_ADDRESS } from './models/escrow';
 import { ERC20_MOCK_ADDRESS_A, ERC20_MOCK_ADDRESS_B } from './models/erc20Mock';
 import { ERC721_MOCK_ADDRESS_1, ERC721_MOCK_ADDRESS_2 } from './models/erc721';
+import Flow from './pages/EyeCandyPage';
 
 const { Header, Content, Sider } = Layout;
 type MenuItem = Required<MenuProps>['items'][number];
@@ -53,6 +54,11 @@ const routes: MenuItem[] = [
     key: String(4),
     icon: <LogoutOutlined />,
     label: <Link to="withdraw">Withdraw Trades</Link>,
+  },
+  {
+    key: String(5),
+    icon: <DotChartOutlined />,
+    label: <Link to="eyecandy">Eye candy</Link>,
   },
 
 ]
@@ -169,14 +175,6 @@ function App() {
             </>
           </Content>
           <Footer style={{ textAlign: 'center' }}>
-            <ul>
-              <li>Escrow : {ESCROW_ADDRESS}</li>
-              <li>ERC20 A: {ERC20_MOCK_ADDRESS_A}</li>
-              <li>ERC20 B: {ERC20_MOCK_ADDRESS_B}</li>
-              <li>Nft 1:   {ERC721_MOCK_ADDRESS_1}</li>
-              <li>Nft 2: {ERC721_MOCK_ADDRESS_2}</li>
-              <li>Me : {address}</li>
-            </ul>
             ©2023
           </Footer>
         </Layout>
