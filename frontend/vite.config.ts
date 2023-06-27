@@ -4,6 +4,7 @@ import { nodePolyfills } from "vite-plugin-node-polyfills";
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  base:'/EON-TRADE-MATCH/',
   plugins: [react(), nodePolyfills()],
   define: {
     "process.env": {},
