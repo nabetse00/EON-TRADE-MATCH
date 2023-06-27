@@ -7,12 +7,10 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview",
-    "postinstall": "export THIRDWEB_CLI_SKIP_INTRO=true && npx thirdweb generate --skip-update-check"
+    "preview": "vite preview"
   },
   "dependencies": {
     "@ant-design/icons": "^5.1.4",
-    "@thirdweb-dev/chains": "^0.1.20",
     "@wagmi/core": "^1.2.0",
     "antd": "^5.6.1",
     "ethers": "^5.7.2",
