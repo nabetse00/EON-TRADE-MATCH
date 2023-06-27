@@ -9,7 +9,7 @@ import {
     addEdge,
 } from 'reactflow';
 import AssetNode from '../components/flow/node';
-import { Row, Typography } from 'antd';
+import { Typography } from 'antd';
 
 const { Title, Paragraph } = Typography;
 

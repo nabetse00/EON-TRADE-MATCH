@@ -21,13 +21,13 @@ async function main() {
   contract address: ${nft.address}`
   );
 
-  for (let index = 0; index < 5; index++) {
-    const res = await nft.safeMint(deployer.address, `${BASE_URL}/nft0-item-${index}.json`)
-    const log = await res.wait()
-    console.log(`nft ${index} on block ${log.blockNumber}`)
-    const tokid = await nft.tokenOfOwnerByIndex(deployer.address, index)
-    console.log(`nft ${index}: ${tokid.toBigInt()}`)
-  }
+  // for (let index = 0; index < 5; index++) {
+  //   const res = await nft.safeMint(deployer.address, `${BASE_URL}/nft0-item-${index}.json`)
+  //   const log = await res.wait()
+  //   console.log(`nft ${index} on block ${log.blockNumber}`)
+  //   const tokid = await nft.tokenOfOwnerByIndex(deployer.address, index)
+  //   console.log(`nft ${index}: ${tokid.toBigInt()}`)
+  // }
 
 
   name = "Mock NFTs Collection 2"
@@ -41,13 +41,13 @@ async function main() {
   contract address: ${nft.address}`
   );
 
-  for (let index = 0; index < 2; index++) {
-    const res = await nft.safeMint(deployer.address, `https://localhost:5173/nft1-item-${index}.json`)
-    const log = await res.wait()
-    console.log(`nft ${index} on block ${log.blockNumber}`)
-    const tokid = await nft.tokenOfOwnerByIndex(deployer.address, index)
-    console.log(`nft ${index}: ${tokid.toBigInt()}`)
-  }
+  // for (let index = 0; index < 2; index++) {
+  //   const res = await nft.safeMint(deployer.address, `${BASE_URL}/nft1-item-${index}.json`)
+  //   const log = await res.wait()
+  //   console.log(`nft ${index} on block ${log.blockNumber}`)
+  //   const tokid = await nft.tokenOfOwnerByIndex(deployer.address, index)
+  //   console.log(`nft ${index}: ${tokid.toBigInt()}`)
+  // }
 }
 
 main().catch((error) => {

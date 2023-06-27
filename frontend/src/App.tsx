@@ -21,10 +21,6 @@ import TradeMatchEvent from './components/events/TradeMatchEvent';
 import CreateTradeEvent from './components/events/TradeCreatedEvent';
 import { useAccount } from 'wagmi';
 import RequireConnection from './components/RequireConnection';
-import { ESCROW_ADDRESS } from './models/escrow';
-import { ERC20_MOCK_ADDRESS_A, ERC20_MOCK_ADDRESS_B } from './models/erc20Mock';
-import { ERC721_MOCK_ADDRESS_1, ERC721_MOCK_ADDRESS_2 } from './models/erc721';
-import Flow from './pages/EyeCandyPage';
 
 const { Header, Content, Sider } = Layout;
 type MenuItem = Required<MenuProps>['items'][number];
@@ -135,7 +131,7 @@ function App() {
         <Layout>
           <Header style={{ padding: 0, paddingTop: "14px", paddingBottom: "14px", height: "auto", background: "transparent" }}>
             <Row align={"middle"} justify={"center"}>
-              <Col  span={6}>
+              <Col span={6}>
                 <Button
                   type="text"
                   icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
@@ -148,11 +144,11 @@ function App() {
                 />
               </Col>
               <Col flex={"auto"}>
-                <img src={logo} alt="logo" height={"40px"}/>
-                <span style={{fontFamily:'Neuro', fontSize:'1.5em'}}>
+                <img src={logo} alt="logo" height={"40px"} />
+                <span style={{ fontFamily: 'Neuro', fontSize: '1.5em' }}>
                   EonTradeMatch
-                  </span>
-                  
+                </span>
+
               </Col>
 
               <Col flex={"none"} style={{ marginRight: "1rem" }}>
@@ -175,7 +171,7 @@ function App() {
             </>
           </Content>
           <Footer style={{ textAlign: 'center' }}>
-            ©2023
+            EON TRADE MATCH ©2023
           </Footer>
         </Layout>
       </Layout>

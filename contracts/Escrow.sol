@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.9;
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -394,7 +394,6 @@ contract Escrow is ERC721Holder {
         Trade storage t1 = trades[td[0]];
         Trade storage t2 = trades[td[1]];
 
-
         uint256 burnT2From = _amount(t2.fromAsset).mulDiv(
             amountT,
             _amount(t2.toAsset)
@@ -487,7 +486,7 @@ contract Escrow is ERC721Holder {
             }
         }
 
-        // second loop remove related remaining trades 
+        // second loop remove related remaining trades
         bool loop = false;
         do {
             loop = false;
@@ -639,7 +638,7 @@ contract Escrow is ERC721Holder {
         delete trades[t.tradeId];
     }
 
-    // remove from mapping and array 
+    // remove from mapping and array
     function removeTrade(Trade storage t, uint256 index) internal {
         emit TradeRemoved(t);
         // mark to remove
@@ -725,7 +724,7 @@ contract Escrow is ERC721Holder {
 
     function transferNative(address payable to, uint256 amount) internal {
         // safe transfer only 23000 gas
-        // all functions using transfer are reentrant guarded 
+        // all functions using transfer are reentrant guarded
         // with noReentrant modifier
         to.transfer(amount);
     }
@@ -753,7 +752,7 @@ contract Escrow is ERC721Holder {
         return lastAssetIndex++;
     }
 
-    // add 18 decimals to ERC721 amouts 
+    // add 18 decimals to ERC721 amouts
     function _amount(Asset memory asset) internal pure returns (uint256) {
         if (asset.assetType == AssetTypes.ERC721_NFT) {
             return (asset.amount * DECIMALS);

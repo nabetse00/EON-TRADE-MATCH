@@ -1,7 +1,7 @@
 import { Handle, Position } from 'reactflow';
 
 
-function AssetNode({ data }) {
+function AssetNode({ data }: any) {
 
     function sliceAddress(size: number) {
         return `${data.label.slice(0, size)}...${data.label.slice(-size)}`
@@ -49,7 +49,7 @@ function AssetNode({ data }) {
                 borderColor: getColor(data.type),
                 borderWidth: "0.5em",
                 borderStyle: "solid",
-                
+
             }}
         >
             <Handle
@@ -58,7 +58,7 @@ function AssetNode({ data }) {
                 id={`${data.id}.left`}
                 style={{ borderRadius: "0" }}
             />
-            <div id={`type.${data.id}`}>{getType(data.type) }</div>
+            <div id={`type.${data.id}`}>{getType(data.type)}</div>
             <div id={data.id}>{sliceAddress(5)}</div>
             <Handle
                 type="source"
