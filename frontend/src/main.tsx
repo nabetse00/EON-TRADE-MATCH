@@ -2,7 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import './index.css'
 import {
-  createBrowserRouter,
+  createHashRouter,
   RouterProvider,
 } from "react-router-dom";
 import ErrorPage from './pages/ErrorPage.tsx';
@@ -54,9 +54,9 @@ const config = createConfig({
   webSocketPublicClient,
 })
 
-const BASE = '/EON-TRADE-MATCH/'
+const BASE = '/'
 
-const router = createBrowserRouter([
+const router = createHashRouter([
   {
     path: `${BASE}`,
     element: <App />,
