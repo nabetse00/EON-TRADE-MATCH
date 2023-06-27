@@ -36,16 +36,16 @@ export default function HomePage() {
                 <Card.Grid style={gridStyle}>
                     <Space>
 
-                        <Button onClick={() => { navigate("/show-trades"); }}>
+                        <Button onClick={() => { navigate("show-trades"); }}>
                             Show trades
                         </Button>
-                        <Button onClick={() => { navigate("/create-trades"); }}>
+                        <Button onClick={() => { navigate("create-trades"); }}>
                             Create Trades
                         </Button>
-                        <Button onClick={() => { navigate("/withdraw"); }}>
+                        <Button onClick={() => { navigate("withdraw"); }}>
                             Withdraw trades
                         </Button>
-                        <Button onClick={() => { navigate("/dispenser"); }}>
+                        <Button onClick={() => { navigate("dispenser"); }}>
                             Dispencer
                         </Button>
                     </Space>

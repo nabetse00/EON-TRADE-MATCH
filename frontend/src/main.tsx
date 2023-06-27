@@ -54,32 +54,34 @@ const config = createConfig({
   webSocketPublicClient,
 })
 
+const BASE = '/EON-TRADE-MATCH/'
+
 const router = createBrowserRouter([
   {
-    path: "/",
+    path: `${BASE}`,
     element: <App />,
     errorElement: <ErrorPage />,
     children: [{
-      path:'/',
+      path: `${BASE}`,
       element: <HomePage />,
-    },{
-      path: "/create-trades",
+    }, {
+      path: `${BASE}create-trades`,
       element: <CreateTrade />,
     },
     {
-      path: "/show-trades",
+      path: `${BASE}show-trades`,
       element: <ShowTrades />,
     },
     {
-      path: "/withdraw",
+      path: `${BASE}withdraw`,
       element: <WithdrawTradesPage />,
     },
     {
-      path: "/dispenser",
+      path: `${BASE}dispenser`,
       element: <Dispenser />,
     },
     {
-      path: "/eyecandy",
+      path: `${BASE}eyecandy`,
       element: <Flow />,
     },
 
