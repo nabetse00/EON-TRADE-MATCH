@@ -33,7 +33,7 @@ export default function DispenserPage() {
         address: ERC721_MOCK_ADDRESS_1,
         abi: ERC721_MOCK_ABI,
         functionName: 'dispense',
-        args: [`${base}/nft0-item-${randomInteger(0, 5)}.json`],
+        args: [`${base}/nft0-item-${randomInteger(0, 4)}.json`],
     })
     const { data: dataNFT1, isLoading: isLoadingNFT1, isSuccess: isSuccessNFT1, write: writeNFT1 } = useContractWrite(configNFT1)
 
@@ -41,7 +41,7 @@ export default function DispenserPage() {
         address: ERC721_MOCK_ADDRESS_2,
         abi: ERC721_MOCK_ABI,
         functionName: 'dispense',
-        args: [`${base}/nft0-item-${randomInteger(0, 5)}.json`],
+        args: [`${base}/nft0-item-${randomInteger(0, 4)}.json`],
     })
     const { data: dataNFT2, isLoading: isLoadingNFT2, isSuccess: isSuccessNFT2, write: writeNFT2 } = useContractWrite(configNFT2)
 
@@ -100,7 +100,6 @@ export default function DispenserPage() {
                 <Card title={`Mock ERC721 -NFT A- dispenser`}>
                     <Paragraph>
                         Mock ERC721 dispenser. Sends 1 NFT A
-                        url {`${base}nft0-item-${randomInteger(0, 5)}.json`}
                     </Paragraph>
                     <Paragraph>
                         {ERC721_MOCK_ADDRESS_1}
