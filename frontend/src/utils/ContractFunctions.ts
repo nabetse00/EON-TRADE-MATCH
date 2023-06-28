@@ -1,7 +1,7 @@
 import { erc20ABI, erc721ABI, fetchBalance, prepareWriteContract, readContract, waitForTransaction, writeContract } from "@wagmi/core"
 import { AssetStruct, AssetTypes } from "../models/assets"
 import { parseEther } from "viem"
-import { AssetContract, ESCROW_ABI, ESCROW_ADDRESS } from "../models/escrow"
+import { AssetContract, CONFIRMATIONS, ESCROW_ABI, ESCROW_ADDRESS } from "../models/escrow"
 import { ERC165Abi, ERC721InterfaceId } from "../models/erc165"
 
 
@@ -80,7 +80,7 @@ export async function approveEscrowERC20(asset: AssetStruct): Promise<boolean> {
         await delay(1000)
         const data = await waitForTransaction({
             hash: hash,
-            // confirmations: CONFIRMATIONS,
+            confirmations: CONFIRMATIONS,
         })
         return (data.status == "success")
     } catch (error) {
@@ -120,7 +120,7 @@ export async function approveEscrowERC721(asset: AssetStruct, index: number): Pr
         await delay(1000)
         const data = await waitForTransaction({
             hash: hash,
-            // confirmations: CONFIRMATIONS
+            confirmations: CONFIRMATIONS
         })
 
         return (data.status == "success")
@@ -200,7 +200,7 @@ export async function createTrade(owner: `0x${string}`,
         await delay(1000)
         const data = await waitForTransaction({
             hash: hash,
-            // confirmations: CONFIRMATIONS
+            confirmations: CONFIRMATIONS
         })
 
         return (data.status == "success")
