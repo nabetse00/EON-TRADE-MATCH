@@ -146,7 +146,7 @@ function App() {
               <Col flex={"auto"}>
                 <img src={logo} alt="logo" height={"40px"} />
                 <span style={{ fontFamily: 'Neuro', fontSize: '1.5em' }}>
-                  EonTradeMatch
+                  EonTrade Match
                 </span>
 
               </Col>

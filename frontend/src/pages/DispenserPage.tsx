@@ -99,6 +99,7 @@ export default function DispenserPage() {
                 <Card title={`Mock ERC721 -NFT A- dispenser`}>
                     <Paragraph>
                         Mock ERC721 dispenser. Sends 1 NFT A
+                        url {`${base}/nft0-item-${randomInteger(0, 5)}.json`}
                     </Paragraph>
                     <Paragraph>
                         {ERC721_MOCK_ADDRESS_1}
