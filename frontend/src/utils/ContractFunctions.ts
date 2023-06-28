@@ -77,12 +77,14 @@ export async function approveEscrowERC20(asset: AssetStruct): Promise<boolean> {
             args: [ESCROW_ADDRESS, parseEther(asset.amount as `${number}`)]
         })
         const { hash } = await writeContract(request)
+        await delay(1000)
         const data = await waitForTransaction({
             hash: hash,
             // confirmations: CONFIRMATIONS,
         })
         return (data.status == "success")
     } catch (error) {
+        console.log("approve ERC20 fails")
         console.error(error)
         return false
     }
@@ -115,6 +117,7 @@ export async function approveEscrowERC721(asset: AssetStruct, index: number): Pr
                 value: BigInt(0)
             })
         const { hash } = await writeContract(request)
+        await delay(1000)
         const data = await waitForTransaction({
             hash: hash,
             // confirmations: CONFIRMATIONS
@@ -194,6 +197,7 @@ export async function createTrade(owner: `0x${string}`,
                 value: value_
             })
         const { hash } = await writeContract(request)
+        await delay(1000)
         const data = await waitForTransaction({
             hash: hash,
             // confirmations: CONFIRMATIONS
@@ -208,7 +212,9 @@ export async function createTrade(owner: `0x${string}`,
 
 }
 
-
+async function delay(ms: number) {
+    return new Promise( resolve => setTimeout(resolve, ms) );
+}
 
 
 
