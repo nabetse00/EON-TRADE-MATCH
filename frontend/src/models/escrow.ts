@@ -1,7 +1,7 @@
 import { parseUnits } from "viem"
 
 export const ESCROW_ADDRESS: `0x${string}` = import.meta.env.VITE_ESCROW_ADDRESS
-export const CONFIRMATIONS: number = 2
+export const CONFIRMATIONS: number = 1
 
 export const ESCROW_ABI = [
   {
