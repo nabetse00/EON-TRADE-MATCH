@@ -1,7 +1,7 @@
-import { erc20ABI, erc721ABI, fetchBalance, prepareWriteContract, readContract, waitForTransaction, writeContract } from "@wagmi/core"
+import { erc20ABI, erc721ABI, fetchBalance, prepareWriteContract, readContract, writeContract } from "@wagmi/core"
 import { AssetStruct, AssetTypes } from "../models/assets"
 import { parseEther } from "viem"
-import { AssetContract, CONFIRMATIONS, ESCROW_ABI, ESCROW_ADDRESS } from "../models/escrow"
+import { AssetContract, ESCROW_ABI, ESCROW_ADDRESS } from "../models/escrow"
 import { ERC165Abi, ERC721InterfaceId } from "../models/erc165"
 
 
@@ -199,7 +199,8 @@ export async function createTrade(owner: `0x${string}`,
                 ],
                 value: value_
             })
-        const { hash } = await writeContract(request)
+        //const { hash } = 
+        await writeContract(request)
         await delay(10000)
         // const data = await waitForTransaction({
         //     hash: hash,
