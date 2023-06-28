@@ -29,7 +29,7 @@ export default function TradeMatchEvent(props: { api: NotificationInstance }) {
 
     const openNotification = (tradeIdA:bigint, tradeIdB: bigint, partial: boolean) => {
         props.api.info({
-          message: `Trades ${partial? "paritaly": ""} Matched`,
+          message: `Trades ${partial? "partially": ""} Matched`,
           description:
             `Trade #${tradeIdA.toString()} matched with Trade #${tradeIdB.toString()}`,
           duration: 5,

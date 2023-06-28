@@ -1,7 +1,7 @@
 # Eon Trade Match
 ![](./frontend/public/logo.png)
 
-Welcome to Eon TradeMatch, the premier platform for automated trades between users without the need for a direct counterparty. Our innovative system matches users based on their desired assets, enabling seamless and secure transactions.
+Welcome to Eon TradeMatch, a platform for automated trades between users without the need for a direct counterparty. Our innovative system matches users based on their desired assets, enabling seamless and secure transactions.
 
 With EonTrade Match, you have the power to take control of your investments and unlock the potential of your assets. Say goodbye to the limitations of traditional trading methods and embrace the convenience and flexibility of automated trades.
 
@@ -171,8 +171,10 @@ https://nabetse00.github.io/EON-TRADE-MATCH/#/
 ![screen shot 2](./images/screen2.png)
 ![screen shot 3](./images/screen3.png)
 
-- video 
-[YT URL HERE]
+- video
+
+[Video demonstration](https://youtu.be/Dt6uXWjc2D4)
+
 
 
 

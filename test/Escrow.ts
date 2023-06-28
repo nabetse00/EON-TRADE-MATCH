@@ -554,7 +554,7 @@ describe("Escrow Contract", function () {
             expect(buyerAfterTrade.sub(buyerBeforeTrade)).to.be.equal(zen_amount)
         });
 
-        it("Create and partialy match Zen (token limit) => tokenA and tokenA => zen trades, when allowed", async function () {
+        it("Create and partially match Zen (token limit) => tokenA and tokenA => zen trades, when allowed", async function () {
             const { escrow, deployer, buyer, seller, fromTokenERC20,
                 toTokenERC20, fromTokenERC721, toTokenERC721 } = await loadFixture(deployEscrowFixture);
             const zen_amount0 = ethers.utils.parseEther("1000")
@@ -665,7 +665,7 @@ describe("Escrow Contract", function () {
 
         });
 
-        it("Create and do NOT partialy match Zen => tokenA and tokenA => zen trades, when NOT allowed", async function () {
+        it("Create and do NOT partially match Zen => tokenA and tokenA => zen trades, when NOT allowed", async function () {
             const { escrow, deployer, buyer, seller, fromTokenERC20,
                 toTokenERC20, fromTokenERC721, toTokenERC721 } = await loadFixture(deployEscrowFixture);
             const zen_amount0 = ethers.utils.parseEther("1000")
@@ -776,7 +776,7 @@ describe("Escrow Contract", function () {
 
         });
 
-        it("Create and not partialy match (Zen limit) Zen => tokenA and tokenA => zen trades, when not allowed", async function () {
+        it("Create and not partially match (Zen limit) Zen => tokenA and tokenA => zen trades, when not allowed", async function () {
             const { escrow, deployer, buyer, seller, fromTokenERC20,
                 toTokenERC20, fromTokenERC721, toTokenERC721 } = await loadFixture(deployEscrowFixture);
             const zen_amount1 = ethers.utils.parseEther("1000")
@@ -892,7 +892,7 @@ describe("Escrow Contract", function () {
 
         });
 
-        it("Create and partialy match (Zen limit) Zen => tokenA and tokenA => zen trades, when allowed", async function () {
+        it("Create and partially match (Zen limit) Zen => tokenA and tokenA => zen trades, when allowed", async function () {
             const { escrow, deployer, buyer, seller, fromTokenERC20,
                 toTokenERC20, fromTokenERC721, toTokenERC721 } = await loadFixture(deployEscrowFixture);
             const zen_amount0 = ethers.utils.parseEther("200")
