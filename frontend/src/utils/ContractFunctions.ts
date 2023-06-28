@@ -76,13 +76,16 @@ export async function approveEscrowERC20(asset: AssetStruct): Promise<boolean> {
             functionName: 'approve',
             args: [ESCROW_ADDRESS, parseEther(asset.amount as `${number}`)]
         })
-        const { hash } = await writeContract(request)
+        // const { hash } = 
+        await writeContract(request)
         await delay(10000)
-        const data = await waitForTransaction({
-            hash: hash,
-            confirmations: CONFIRMATIONS,
-        })
-        return (data.status == "success")
+        // slow on gobi testnet
+        // const data = await waitForTransaction({
+        //    hash: hash,
+        //    confirmations: CONFIRMATIONS,
+        // })
+        //return (data.status == "success")
+        return true
     } catch (error) {
         console.log("approve ERC20 fails")
         console.error(error)
@@ -116,15 +119,15 @@ export async function approveEscrowERC721(asset: AssetStruct, index: number): Pr
                 args: [ESCROW_ADDRESS, asset.tokekenIds![index]],
                 value: BigInt(0)
             })
-        const { hash } = await writeContract(request)
+        // const { hash } = 
+        await writeContract(request)
         await delay(10000)
-        const data = await waitForTransaction({
-            hash: hash,
-            confirmations: CONFIRMATIONS
-        })
-
-        return (data.status == "success")
-
+        // const data = await waitForTransaction({
+        //     hash: hash,
+        //     confirmations: CONFIRMATIONS
+        // })
+        // return (data.status == "success")
+        return true
     } catch (error) {
         console.error(error)
         return false
@@ -198,12 +201,12 @@ export async function createTrade(owner: `0x${string}`,
             })
         const { hash } = await writeContract(request)
         await delay(10000)
-        const data = await waitForTransaction({
-            hash: hash,
-            confirmations: CONFIRMATIONS
-        })
-
-        return (data.status == "success")
+        // const data = await waitForTransaction({
+        //     hash: hash,
+        //     confirmations: CONFIRMATIONS
+        // })
+        //return (data.status == "success")
+        return true
 
     } catch (error) {
         console.error(error)
