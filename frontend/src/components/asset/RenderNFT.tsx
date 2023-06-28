@@ -14,7 +14,12 @@ export default function RenderNFT(props: { tokenId: bigint, nftAddress: `0x${str
     const [json, setJson] = useState<TokenUri>()
 
     const getData = () => {
-        fetch(data!.replace("https://", "http://")
+        let url = data!
+        if(import.meta.env.DEV){
+            url = url.replace("https://", "http://")
+        }
+        fetch(
+            url
             , {
                 headers: {
                     'Content-Type': 'application/json',

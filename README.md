@@ -121,6 +121,13 @@ npm install
 npm run dev 
 ```
 
+Set up metamask to localnet
+```
+RPC: http://localhost:8545
+chainId: 1337
+Symbol: ETH
+```
+
 For usage details please watch attached video demo.
 
 ## Eon Horizen Gobi testnet
