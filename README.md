@@ -135,12 +135,16 @@ For usage details please watch attached video demo.
 
 Contracts are deployed and verified on gobi testnet
 ```ts
-VITE_ESCROW_ADDRESS=0x96E7Cc0a9f026B2Fbf9a2B2e0e57C66F1aebADD7
+VITE_ESCROW_ADDRESS=0x959a61D92dCc9db6e1394ED8C710d424B4F3f705
 VITE_ERC20_MOCK_ADDRESS_A=0x233F7515005271FB96DBd2112B60160bA03fc4Ec
 VITE_ERC20_MOCK_ADDRESS_B=0x6ab364d740E14A385b3B9F487D5973b31D4e200C
 VITE_ERC721_MOCK_ADDRESS_1=0x79f7Fc14E58EB650C4742669972aaa14ecA0f715
 VITE_ERC721_MOCK_ADDRESS_2=0x2D0E17B66F19F33fCB0447D0A48fC7BF57528783 
 ```
+
+Link on gobi tesnet explorer:
+[escrow contract](https://gobi-explorer.horizen.io/address/0x959a61D92dCc9db6e1394ED8C710d424B4F3f705)
+
 
 A demo web site is in github pages at:
 [https://nabetse00.github.io/EON-TRADE-MATCH/#/](https://nabetse00.github.io/EON-TRADE-MATCH/#/)
@@ -154,7 +158,7 @@ You can also run production preview form your computer with:
 
 Don't forget to add a .env file in frontend directory with deployed contracts on gobi tesnet:
 ```env
-VITE_ESCROW_ADDRESS=0x96E7Cc0a9f026B2Fbf9a2B2e0e57C66F1aebADD7
+VITE_ESCROW_ADDRESS=0x959a61D92dCc9db6e1394ED8C710d424B4F3f705
 VITE_ERC20_MOCK_ADDRESS_A=0x233F7515005271FB96DBd2112B60160bA03fc4Ec
 VITE_ERC20_MOCK_ADDRESS_B=0x6ab364d740E14A385b3B9F487D5973b31D4e200C
 VITE_ERC721_MOCK_ADDRESS_1=0x79f7Fc14E58EB650C4742669972aaa14ecA0f715
@@ -173,7 +177,7 @@ https://nabetse00.github.io/EON-TRADE-MATCH/#/
 
 - video
 
-[Video demonstration](https://youtu.be/Dt6uXWjc2D4)
+[Video demonstration](https://www.youtube.com/watch?v=Dt6uXWjc2D4)
 
 
 
