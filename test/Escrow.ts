@@ -1525,6 +1525,94 @@ describe("Escrow Contract", function () {
             trades = await escrow.getTrades()
             await expect(trades.length).to.be.equal(2)
         });
+        it("Create new composed trades ", async function () {
+            const { escrow, deployer, seller, buyer } = await loadFixture(deployEscrowFixture);
+            const duration = 100
+
+            const zen_amount1 = ethers.utils.parseEther("0.01")
+            const zen_amount2 = ethers.utils.parseEther("0.005")
+
+            const amountA = 10
+            const amountB = 20
+            const tokenA_amount = ethers.utils.parseEther(amountA.toString())
+            const tokenB_amount = ethers.utils.parseEther(amountB.toString())
+
+            const tokenA = await createERC20("Token A", "TKA", "10000")
+            await tokenERC20SetUp(tokenA, escrow, deployer, seller, amountA)
+
+            const tokenB = await createERC20("Token B", "TKB", "10000")
+            await tokenERC20SetUp(tokenB, escrow, deployer, buyer, amountB)
+
+
+            const addrToTok = (addr: string) => {
+                switch (addr) {
+                    case ethers.constants.AddressZero:
+                        return "0xZERO"
+                        break;
+                    case tokenA.address:
+                        return "0xA"
+                        break;
+                    case tokenB.address:
+                        return "0xB"
+                        break;
+                    default:
+                        return "0x???"
+                        break;
+                }
+            }
+
+            let fromAsset: Escrow.AssetStruct = {
+                assetId: 0,
+                assetType: AssetTypes.NATIVE_ZEN,
+                assetAddress: ethers.constants.AddressZero,
+                amount: zen_amount1
+            };
+
+            let toAsset: Escrow.AssetStruct = {
+                assetId: 0,
+                assetType: AssetTypes.ERC20_TOKEN,
+                assetAddress: tokenA.address,
+                amount: tokenA_amount
+            };
+
+            // Zen => tokenA
+            let create = await escrow.connect(seller).createTrade(seller.address, fromAsset, [], toAsset, true, duration, { value: zen_amount1.add(FLAT_FEES) })
+            await expect(create).to.not.be.reverted
+            await expect(create).to.changeEtherBalance(seller, zen_amount1.add(FLAT_FEES).mul(-1));
+            await expect(create).to.changeEtherBalance(escrow, zen_amount1.add(FLAT_FEES));
+            let trades = await escrow.getTrades()
+            await expect(trades.length).to.be.equal(1)
+
+            // tokenA => tokenB
+            fromAsset.assetType = AssetTypes.ERC20_TOKEN
+            fromAsset.assetAddress = tokenA.address
+            fromAsset.amount = tokenA_amount
+            toAsset.assetType = AssetTypes.ERC20_TOKEN
+            toAsset.assetAddress = tokenB.address
+            toAsset.amount = tokenB_amount
+            create = await escrow.connect(seller).createTrade(seller.address, fromAsset, [], toAsset, true, duration, { value: FLAT_FEES })
+            await expect(create).to.not.be.reverted
+            await expect(create).to.changeEtherBalance(seller, FLAT_FEES.mul(-1));
+            await expect(create).to.changeEtherBalance(escrow, FLAT_FEES);
+            trades = await escrow.getTrades()
+            // await printTrades(escrow, addrToTok)
+            await expect(trades.length).to.be.equal(3)
+
+            // tokenB => Zen
+            fromAsset.assetType = AssetTypes.ERC20_TOKEN
+            fromAsset.assetAddress = tokenB.address
+            fromAsset.amount = tokenB_amount.div(2)
+            toAsset.assetType = AssetTypes.NATIVE_ZEN
+            toAsset.assetAddress = ethers.constants.AddressZero
+            toAsset.amount = zen_amount1.div(2)
+            create = await escrow.connect(buyer).createTrade(buyer.address, fromAsset, [], toAsset, true, duration, { value: FLAT_FEES })
+            await expect(create).to.not.be.reverted
+            await expect(create).to.changeEtherBalance(buyer, zen_amount1.div(2).sub(FLAT_FEES));
+            await expect(create).to.changeEtherBalance(escrow, FLAT_FEES.sub(zen_amount1.div(2)));
+            trades = await escrow.getTrades()
+            // await printTrades(escrow, addrToTok)
+            await expect(trades.length).to.be.equal(3)
+        });
 
         it("Create composed trades execute changes to `virtual` trades", async function () {
             const { escrow, deployer, buyer, seller } = await loadFixture(deployEscrowFixture);

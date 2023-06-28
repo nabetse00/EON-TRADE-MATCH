@@ -394,14 +394,18 @@ contract Escrow is ERC721Holder {
         Trade storage t1 = trades[td[0]];
         Trade storage t2 = trades[td[1]];
 
+        if( (t1.owner == address(0)) || (t2.owner == address(0)) ){
+            return;
+        }
+
         uint256 burnT2From = _amount(t2.fromAsset).mulDiv(
             amountT,
             _amount(t2.toAsset)
         );
 
-        uint256 burnT1From = _amount(t1.toAsset).mulDiv(
+        uint256 burnT1From = _amount(t1.fromAsset).mulDiv(
             burnT2From,
-            _amount(t1.fromAsset)
+            _amount(t1.toAsset)
         );
 
         if (t2.owner != address(this)) {
