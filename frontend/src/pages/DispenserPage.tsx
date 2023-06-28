@@ -3,7 +3,8 @@ import { ERC20_MOCK_ABI, ERC20_MOCK_ADDRESS_A, ERC20_MOCK_ADDRESS_B } from '../m
 import { useContractWrite, usePrepareContractWrite } from 'wagmi'
 import { ERC721_MOCK_ADDRESS_1, ERC721_MOCK_ADDRESS_2 } from '../models/erc721';
 import { ERC721_MOCK_ABI } from '../models/erc721';
-const base = import.meta.env.BASE_URL
+const base = "https://nabetse00.github.io" + import.meta.env.BASE_URL
+
 
 const { Paragraph, Link } = Typography;
 
@@ -99,7 +100,7 @@ export default function DispenserPage() {
                 <Card title={`Mock ERC721 -NFT A- dispenser`}>
                     <Paragraph>
                         Mock ERC721 dispenser. Sends 1 NFT A
-                        url {`${base}/nft0-item-${randomInteger(0, 5)}.json`}
+                        url {`${base}nft0-item-${randomInteger(0, 5)}.json`}
                     </Paragraph>
                     <Paragraph>
                         {ERC721_MOCK_ADDRESS_1}
