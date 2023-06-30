@@ -35,6 +35,9 @@ export default function NativeAmountAssetInput(props: { from: boolean, balance: 
     };
 
     const onChangeValue = (newValue: string | null) => {
+        if(newValue == null){
+            newValue = "0";
+        }
         setInputValue(newValue!);
         const newAsset:AssetStruct = {
             assetId: props.asset.assetId,
