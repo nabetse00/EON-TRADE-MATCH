@@ -15,6 +15,8 @@ This repo is part of a submition for [horizen-eon cryptscrow hackaton](https://a
 
 Contracts are deployed on [gobi testnet](https://gobi-explorer.horizen.io/) a horizen sidechain EVM compatible.
 
+- [demo web site](https://nabetse00.github.io/EON-TRADE-MATCH/#/)
+
 # Design
 
 The trade system is designed with a single contract [Escrow.sol](./contracts/Escrow.sol).
@@ -178,7 +180,9 @@ And broswse to http://localhost:4173/EON-TRADE-MATCH/ or similar.
 ## DEMO
 
 - demo web site
+
 https://nabetse00.github.io/EON-TRADE-MATCH/#/
+
 ![screen shot 1](./images/screen1.png)
 ![screen shot 2](./images/screen2.png)
 ![screen shot 3](./images/screen3.png)
