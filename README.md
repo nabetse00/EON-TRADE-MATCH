@@ -7,6 +7,14 @@ With EonTrade Match, you have the power to take control of your investments and 
 
 Experience a new era of automated trading with EonTrade Match. Join our community of traders, eliminate the hassle of finding a direct counterparty, and unlock the full potential of your assets. Embrace the future of trading with EonTrade Match – where seamless and secure transactions become a reality.
 
+# CryptScrow Codeathon
+
+![Eon Gobi testnet](./images/eon-gobi.svg)
+
+This repo is part of a submition for [horizen-eon cryptscrow hackaton](https://app.buidlbox.io/horizen-eon/cryptscrow).
+
+Contracts are deployed on [gobi testnet](https://gobi-explorer.horizen.io/) a horizen sidechain EVM compatible.
+
 # Design
 
 The trade system is designed with a single contract [Escrow.sol](./contracts/Escrow.sol).
